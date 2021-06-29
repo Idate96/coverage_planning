@@ -1,0 +1,138 @@
+from numpy.core.fromnumeric import sort
+from cpp.cells import *
+from cpp.bsd import *
+import matplotlib.image as mpimg
+from cpp.helpers import *
+
+def test_unique_cell():
+    """Testes the trivial case with a single cell
+    """ 
+    simple_cell = np.zeros((10, 10), dtype=np.int)
+    cell = Cell.from_image(simple_cell)[0]
+
+    target_cell = Cell(0, 10)
+    target_cell.left = list(range(10))
+    target_cell.right = list(range(10))
+    target_cell.x_left = 0
+    target_cell.x_right = 9
+    for i in range(10):
+        target_cell.top[i] = 9
+        target_cell.bottom[i] = 0
+
+    assert sorted(target_cell.left) == sorted(cell.left)
+    assert sorted(target_cell.right) == sorted(cell.right)
+    assert target_cell.x_left == cell.x_left
+    assert target_cell.x_right == cell.x_right
+    shared_items_top = {k: target_cell.top[k] for k in target_cell.top if k in cell.top and target_cell.top[k] == cell.top[k]}
+    shared_items_bottom = {k: target_cell.top[k] for k in target_cell.top if k in cell.top and target_cell.top[k] == cell.top[k]}
+    assert len(shared_items_bottom) == len(cell.bottom)
+    assert len(shared_items_top) == len(cell.bottom)
+
+
+
+def test_simple_cell():
+    simple_cell = np.zeros((10, 10), dtype=np.int)
+    simple_cell[:, :5] = 1
+    cells = Cell.from_image(simple_cell)
+
+    target_cell = Cell(0, 10)
+    target_cell.left = list(range(10))
+    target_cell.right = list(range(10))
+    target_cell.x_left = 0
+    target_cell.x_right = 4
+    for i in range(5):
+        target_cell.top[i] = 9
+        target_cell.bottom[i] = 0
+    
+    cell = cells[1]
+
+    assert cell.cell_id == 1
+    assert sorted(target_cell.left) == sorted(cell.left)
+    assert sorted(target_cell.right) == sorted(cell.right)
+    assert target_cell.x_left == cell.x_left
+    assert target_cell.x_right == cell.x_right
+    shared_items_top = {k: target_cell.top[k] for k in target_cell.top if k in cell.top and target_cell.top[k] == cell.top[k]}
+    shared_items_bottom = {k: target_cell.bottom[k] for k in target_cell.bottom if k in cell.bottom and target_cell.bottom[k] == cell.bottom[k]}
+    assert len(shared_items_bottom) == len(cell.bottom)
+    assert len(shared_items_top) == len(cell.top)
+
+    target_cell = Cell(0, 10)
+    target_cell.left = list(range(10))
+    target_cell.right = list(range(10))
+    target_cell.x_left = 5
+    target_cell.x_right = 9
+    for i in range(5, 10):
+        target_cell.top[i] = 9
+        target_cell.bottom[i] = 0
+    
+    cell = cells[0]
+    
+    assert cell.cell_id == 0
+    assert sorted(target_cell.left) == sorted(cell.left)
+    assert sorted(target_cell.right) == sorted(cell.right)
+    assert target_cell.x_left == cell.x_left
+    assert target_cell.x_right == cell.x_right
+    shared_items_top = {k: target_cell.top[k] for k in target_cell.top if k in cell.top and target_cell.top[k] == cell.top[k]}
+    shared_items_bottom = {k: target_cell.bottom[k] for k in target_cell.bottom if k in cell.bottom and target_cell.bottom[k] == cell.bottom[k]}
+    assert len(shared_items_bottom) == len(cell.bottom)
+    assert len(shared_items_top) == len(cell.top)
+
+
+
+
+def test_simple_cell_2():
+    simple_cell = np.zeros((10, 10), dtype=np.int)
+    simple_cell[:5, :] = 1
+    cells = Cell.from_image(simple_cell)
+
+    target_cell = Cell(0, 10)
+    target_cell.left = list(range(5))
+    target_cell.right = list(range(5))
+    target_cell.x_left = 0
+    target_cell.x_right = 9
+    for i in range(10):
+        target_cell.top[i] = 4
+        target_cell.bottom[i] = 0
+    
+    cell = cells[1]
+
+    assert cell.cell_id == 1
+    assert sorted(target_cell.left) == sorted(cell.left)
+    assert sorted(target_cell.right) == sorted(cell.right)
+    assert target_cell.x_left == cell.x_left
+    assert target_cell.x_right == cell.x_right
+    shared_items_top = {k: target_cell.top[k] for k in target_cell.top if k in cell.top and target_cell.top[k] == cell.top[k]}
+    shared_items_bottom = {k: target_cell.bottom[k] for k in target_cell.bottom if k in cell.bottom and target_cell.bottom[k] == cell.bottom[k]}
+    assert len(shared_items_bottom) == len(cell.bottom)
+    assert len(shared_items_top) == len(cell.top)
+
+
+
+def test_plotting():
+    simple_cell = np.zeros((10, 10), dtype=np.int)
+    simple_cell[:, :5] = 1
+    print(simple_cell)
+    cells = Cell.from_image(simple_cell)
+    plot_cells(cells)
+
+
+def test_plotting_map():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 127
+    decomposed = create_mask(binary_image)
+    cells = Cell.from_image(decomposed)
+    plot_cells(cells)
+
+def test_simple_plotting_map():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 127
+    decomposed = create_mask(binary_image)
+    plot_decomposed_image(decomposed)    
+
+
+
+if __name__ == '__main__':
+    test_plotting_map()
+    
