@@ -10,16 +10,14 @@ class Graph(object):
     def add_edge(self, u, v):
         self.adj[u].append(v)
 
-
     def DFS(self, root):
-        visited = list(root)
+        visited = list([root])
 
         def dfs_(node, visited):
             for neighboor in self.adj[node]:
-                if not node in visited:
-                    visited.append(node)
+                if not neighboor in visited:
+                    visited.append(neighboor)
                     dfs_(neighboor, visited)
-        
+
         dfs_(root, visited)
         return visited
-
