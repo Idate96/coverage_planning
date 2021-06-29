@@ -97,5 +97,9 @@ def test_find_diameter():
     assert tree.find_diameter(0) == (5, 6, 5)
 
 
+def test_post_order_traversal():
+    graph = create_graph()
+    assert graph.post_order_traversal(0) == [6, 3, 4, 1, 5, 2, 0]
+
 if __name__ == "__main__":
-    test_find_diameter()
+    test_post_order_traversal()
