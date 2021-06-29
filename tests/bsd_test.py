@@ -57,11 +57,8 @@ def test_two_adj():
 def create_mask_test():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
-    print(image.shape)
     binary_image = image[:, :, 0] > 150
-    print(np.min(binary_image))
     mask = create_mask(binary_image)
-    print(np.max(mask))
 
 
 if __name__ == "__main__":
