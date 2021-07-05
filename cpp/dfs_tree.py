@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Tuple, List
+import numpy as np
 
 
 class Graph(object):
@@ -10,6 +11,10 @@ class Graph(object):
             self.adj = adj_list
 
     def add_edge(self, u, v, directed=True):
+        # check if v is in adj
+        if v not in self.adj:
+            self.adj[v] = list()
+
         self.adj[u].append(v)
         if not directed:
             self.adj[v].append(u)
@@ -107,13 +112,13 @@ class Graph(object):
 
     def post_order_traversal(self, node) -> List[int]:
         """Post order traversal of the graph. A node is marked visited once its children have been visited
-
+        # TODO: works correctly for trees but not for directed graphs
 
         Args:
-            node (int): node from which to start the traversal 
+            node (int): node from which to start the traversal
 
         Returns:
-            List[int]: visiting order of the nodes 
+            List[int]: visiting order of the nodes
         """
         visited = list()
 
@@ -121,9 +126,20 @@ class Graph(object):
             for neighboor in self.adj[node]:
                 dfs_(neighboor, visited)
             visited.append(node)
-        
+
         dfs_(node, visited)
         return visited
 
 
+def adj_matrix_to_dict(adj_matrix):
+    adj_matrix = adj_matrix.astype(np.bool)
+    graph_dict = defaultdict(list)
+    n, _ = np.shape(adj_matrix)
 
+    for node_id in range(n):
+        graph_dict[node_id] = []
+        for neighboor_id in range(n):
+            if adj_matrix[node_id, neighboor_id]:
+                graph_dict[node_id].append(neighboor_id)
+
+    return graph_dict

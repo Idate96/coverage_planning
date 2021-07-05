@@ -1,6 +1,7 @@
 import numpy as np
-from cpp.bsd import find_connectivity, find_slices_adjacency, create_mask
+from cpp.bsd import create_global_adj_matrix, find_connectivity, find_slices_adjacency, create_mask
 import matplotlib.image as mpimg
+from cpp.helpers import *
 
 # tests for connectivy
 def test_fully_connected():
@@ -54,12 +55,33 @@ def test_two_adj():
     assert np.allclose(adj_m, target_adj)
 
 
-def create_mask_test():
+def test_create_mask():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 150
     mask = create_mask(binary_image)
 
 
+def test_find_connectivity():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 150
+    expected_graph = np.zeros((10, 10))
+    expected_graph[0, 1] = 1
+    expected_graph[0, 2] = 1
+    expected_graph[1, 5] = 1
+    expected_graph[2, 3] = 1
+    expected_graph[2, 4] = 1
+    expected_graph[3, 5] = 1
+    expected_graph[4, 6] = 1
+    expected_graph[5, 6] = 1
+    expected_graph[6, 7] = 1
+    expected_graph[6, 8] = 1
+    expected_graph[7, 9] = 1
+    expected_graph[8, 9] = 1
+    expected_graph = expected_graph + expected_graph.T
+    graph = create_global_adj_matrix(binary_image)
+    assert np.allclose(graph, expected_graph)
+
 if __name__ == "__main__":
-    create_mask_test()
+    test_find_connectivity()

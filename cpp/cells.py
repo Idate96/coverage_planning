@@ -64,8 +64,7 @@ def plot_cells(list_cells: List[Cell]):
 
     for cell in list_cells:
         # plot side boundaries
-        print(cell.x_right)
-        print(cell.right)
+        print("Boundaries : [%d, %d]" %(cell.x_left, cell.x_right))
         plt.plot(
             cell.x_left * np.ones(len(cell.left)),
             cell.left,
