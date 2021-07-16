@@ -193,8 +193,25 @@ def test_bsd_path():
     print(len(cells))
     for i in range(1, len(cells)):
         path = create_path(cells[i], 0, 0, coverage_radius=10)
-        plot_path(path, show=False)
+        plot_path(path, show=True)
     plt.show()
+
+
+def test_filter_cells():
+    image = mpimg.imread("data/test/map.jpg")
+    binary_image = image[:, :, 0] > 127
+    decomposed = create_mask(binary_image)
+    cells = Cell.from_image(decomposed)
+    binary_image = image[:, :, 0] > 127
+    decomposed = create_mask(binary_image)
+    cells = Cell.from_image(decomposed)
+
+    # filter cells
+    left_cells = filter_cells(cells[5], cells=cells, side="left")
+    assert [cell.cell_id for cell in left_cells] == [1, 2, 3, 4]
+    right_cells = filter_cells(cells[5], cells=cells, side="right")
+    assert [cell.cell_id for cell in right_cells] == [7, 8, 9, 10]
+
 
 
 if __name__ == "__main__":
