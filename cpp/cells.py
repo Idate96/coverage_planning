@@ -143,6 +143,7 @@ def plot_cells(list_cells: List[Cell], show=False):
 
     if show:
         plt.show()
+        
 
 
 def filter_cells(cell: Cell, cells: List[Cell], side: str) -> List[Cell]:

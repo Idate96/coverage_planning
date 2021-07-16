@@ -1,3 +1,4 @@
+from numpy.core.numeric import binary_repr
 from numpy.lib.function_base import cov
 from cpp.cells import Cell, filter_cells
 from typing import List, Tuple
@@ -287,7 +288,7 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     num_cells = np.max(decomposed_image)
     graph = np.zeros((num_cells + 1, num_cells + 1))
     previous_segments = []
-
+    
     for col_id in range(decomposed_image.shape[1]):
         slice = binary_image[:, col_id]
         current_segments = find_connectivity(slice)
@@ -309,6 +310,46 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
 
     return graph
 
+
+def directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
+    """Creates a directed graph representing the global connectivity of the workspace cells
+    
+    Args:
+        binary_image (np.ndarray): images or 0 and 1, encoding areas belonging
+    
+    Returns:
+        graph: directed graph of the cells connectivity
+    
+    """
+    decomposed = create_mask(binary_image)
+    cells = Cell.from_image(decomposed)
+    # undirected graph 
+    adj_matrix = create_global_adj_matrix(binary_image)
+
+    # cells only connects through corners, as those are the end points of the motion primitives
+    # we prune edges from adj_matrix by checking the cells adj to the corners
+    for cell in cells:
+        for corner in range(4):
+            pass
+
+
+def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
+    """Check if first cell is connected to second cell via a corner
+    
+    Args:
+        cell_1 (Cell): cell 1
+        cell_2 (Cell): cell 2
+    
+    Returns:
+        adj: True if cell 1 is connected to cell 2 via a corner
+    
+    """
+    adj = False
+    for corner in range(4):
+        adj_cell_id = get_adj_cell_to_corner([cell_1, cell_2], cell_1.cell_id, corner)
+        if adj_cell_id is not None:
+            adj = True
+    return adj
 
 # def get_corners_adj_to_cell(
 #     adj_matrix: np.array, cells: List[Cell], cell_id: int
@@ -395,8 +436,7 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
 #     return corners
 
 
-def get_adj_cell_to_corner(
-    adj_matrix: np.array, cells: List[Cell], cell_id: int, corner_id: int
+def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int
 ) -> int:
     """Returns the cell id adjent to the corner of the current cell
 
@@ -412,16 +452,10 @@ def get_adj_cell_to_corner(
     # cell ids start from 1 -> tranform to index
     cell_id = cell_id - 1
 
-    # neightbouring cells
-    neighbours = []
-    for i in range(len(adj_matrix[cell_id, :])):
-        if adj_matrix[cell_id, i]:
-            neighbours.append(cells[i])
-
     coorner_coord = cells[cell_id].get_corner_coordinates(corner_id)
     # if corner id is 0 or 1 check on the cells on the left
     if corner_id == 0 or corner_id == 1:
-        left_neighbours = filter_cells(cells[cell_id], neighbours, side="left")
+        left_neighbours = filter_cells(cells[cell_id], cells, side="left")
         for left_cell in left_neighbours:
             adj_pt = (coorner_coord[0] - 1, coorner_coord[1])
             if left_cell.contains(adj_pt):
@@ -431,7 +465,7 @@ def get_adj_cell_to_corner(
                     raise AssertionError("More than one adjacent cell found")
 
     elif corner_id == 2 or corner_id == 3:
-        right_neighbours = filter_cells(cells[cell_id], neighbours, side="right")
+        right_neighbours = filter_cells(cells[cell_id], cells, side="right")
         for right_cell in right_neighbours:
             adj_pt = (coorner_coord[0] + 1, coorner_coord[1])
             if right_cell.contains(adj_pt):

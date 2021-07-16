@@ -64,6 +64,13 @@ def test_create_mask():
     mask = create_mask(binary_image)
 
 
+def test_create_mask_H():
+    binary_image = generate_H_map((400, 600), invert=True)
+    decomposed_image = create_mask(binary_image)
+    cells = Cell.from_image(decomposed_image)
+    plot_decomposed_image(decomposed_image, show=False)
+    plot_cells(cells, show=True)
+
 def test_find_connectivity():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
@@ -127,66 +134,64 @@ def test_get_adj_cell_to_corner():
     cells = Cell.from_image(decomposed_image)
 
     # find adjent corners
-    adj_cell_6_0 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=6, corner_id=0
-    )
+    adj_cell_6_0 = get_adj_cell_to_corner(cells, cell_id=6, corner_id=0)
     assert adj_cell_6_0 == 2
 
-    adj_cell_6_1 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=6, corner_id=1
-    )
+    adj_cell_6_1 = get_adj_cell_to_corner(cells, cell_id=6, corner_id=1)
     assert adj_cell_6_1 == 4
 
-    adj_cell_6_2 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=6, corner_id=2
-    )
+    adj_cell_6_2 = get_adj_cell_to_corner(cells, cell_id=6, corner_id=2)
     assert adj_cell_6_2 == 7
 
-    adj_cell_6_3 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=6, corner_id=3
-    )
+    adj_cell_6_3 = get_adj_cell_to_corner(cells, cell_id=6, corner_id=3)
     assert adj_cell_6_3 == 7
 
-    adj_cell_3_0 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=3, corner_id=0
-    )
+    adj_cell_3_0 = get_adj_cell_to_corner(cells, cell_id=3, corner_id=0)
     assert adj_cell_3_0 == 1
 
-    adj_cell_3_1 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=3, corner_id=1
-    )
+    adj_cell_3_1 = get_adj_cell_to_corner(cells, cell_id=3, corner_id=1)
     assert adj_cell_3_1 == 1
 
-    adj_cell_3_2 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=3, corner_id=2
-    )
+    adj_cell_3_2 = get_adj_cell_to_corner(cells, cell_id=3, corner_id=2)
     assert adj_cell_3_2 == 5
 
-    adj_cell_3_3 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=3, corner_id=3
-    )
+    adj_cell_3_3 = get_adj_cell_to_corner(cells, cell_id=3, corner_id=3)
     assert adj_cell_3_3 == 4
 
     # test corners
-    adj_cell_1_0 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=1, corner_id=0
-    )
+    adj_cell_1_0 = get_adj_cell_to_corner(cells, cell_id=1, corner_id=0)
     assert adj_cell_1_0 == None
 
-    adj_cell_1_1 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=1, corner_id=1
-    )
+    adj_cell_1_1 = get_adj_cell_to_corner(cells, cell_id=1, corner_id=1)
     assert adj_cell_1_1 == None
 
-    adj_cell_10_2 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=10, corner_id=2
-    )
+    adj_cell_10_2 = get_adj_cell_to_corner(cells, cell_id=10, corner_id=2)
     assert adj_cell_10_2 == None
 
-    adj_cell_10_3 = get_adj_cell_to_corner(
-        graph_adj_matrix, cells, cell_id=10, corner_id=3
-    )
+    adj_cell_10_3 = get_adj_cell_to_corner(cells, cell_id=10, corner_id=3)
     assert adj_cell_10_3 == None
+
+
+def test_corner_adjencency():
+    """Tests whethere the corner adj is correct found are the correct ones"""
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 150
+    graph_adj_matrix = create_global_adj_matrix(binary_image)
+
+    # create cells
+    decomposed_image = create_mask(binary_image)
+    cells = Cell.from_image(decomposed_image)
+
+    corner_adj = corner_adjencency(cells[0], cells[1])
+    assert corner_adj == True
+
+
+def test_corner_adjencency_H_shape():
+    binary_image = generate_H_map((400, 600), invert=True)
+    decomposed_image = create_mask(binary_image)
+    cells = Cell.from_image(decomposed_image)
+
 
 
 def test_get_corner_to_adj_cell():
@@ -410,6 +415,7 @@ def test_global_path():
     plt.imshow(image)
     plt.savefig("logs/images/test_path.png")
 
+
 def test_small_global_path():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
@@ -488,4 +494,4 @@ def test_plotter():
 
 
 if __name__ == "__main__":
-    test_plotter()
+    test_create_mask_H()
