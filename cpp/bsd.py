@@ -288,8 +288,8 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     num_cells = np.max(decomposed_image)
     graph = np.zeros((num_cells + 1, num_cells + 1))
     previous_segments = []
-    
-    for col_id in range(decomposed_image.shape[1]):
+
+    for col_id in range(1, decomposed_image.shape[1]):
         slice = binary_image[:, col_id]
         current_segments = find_connectivity(slice)
 
@@ -308,10 +308,10 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     # excludes the zero cell (obstacles)
     graph = graph[1:, 1:]
 
-    return graph
+    return graph, decomposed_image
 
 
-def directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
+def get_directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     """Creates a directed graph representing the global connectivity of the workspace cells
     
     Args:
@@ -321,16 +321,20 @@ def directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
         graph: directed graph of the cells connectivity
     
     """
-    decomposed = create_mask(binary_image)
-    cells = Cell.from_image(decomposed)
-    # undirected graph 
-    adj_matrix = create_global_adj_matrix(binary_image)
+    decomposed_image = create_mask(binary_image)
+    cells = Cell.from_image(decomposed_image)
+    
 
+    directed_adj_matrix = np.zeros((len(cells), len(cells)))
     # cells only connects through corners, as those are the end points of the motion primitives
     # we prune edges from adj_matrix by checking the cells adj to the corners
     for cell in cells:
         for corner in range(4):
-            pass
+            adj_cell_id = get_adj_cell_to_corner(cells, cell.cell_id, corner)
+            if adj_cell_id is not None:
+                directed_adj_matrix[cell.cell_id, adj_cell_id] = 1
+    
+    return directed_adj_matrix, decomposed_image
 
 
 def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
@@ -450,12 +454,12 @@ def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int
     """
     adj_cell_id = None
     # cell ids start from 1 -> tranform to index
-    cell_id = cell_id - 1
+    cell = list(filter(lambda c: c.cell_id == cell_id, cells))[0]
 
-    coorner_coord = cells[cell_id].get_corner_coordinates(corner_id)
+    coorner_coord = cell.get_corner_coordinates(corner_id)
     # if corner id is 0 or 1 check on the cells on the left
     if corner_id == 0 or corner_id == 1:
-        left_neighbours = filter_cells(cells[cell_id], cells, side="left")
+        left_neighbours = filter_cells(cell, cells, side="left")
         for left_cell in left_neighbours:
             adj_pt = (coorner_coord[0] - 1, coorner_coord[1])
             if left_cell.contains(adj_pt):
@@ -465,7 +469,7 @@ def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int
                     raise AssertionError("More than one adjacent cell found")
 
     elif corner_id == 2 or corner_id == 3:
-        right_neighbours = filter_cells(cells[cell_id], cells, side="right")
+        right_neighbours = filter_cells(cell, cells, side="right")
         for right_cell in right_neighbours:
             adj_pt = (coorner_coord[0] + 1, coorner_coord[1])
             if right_cell.contains(adj_pt):
@@ -496,7 +500,7 @@ def get_corners_to_adj_cell(
     corners = []
     # for each corner compute the adj cells ids
     for corner in range(4):
-        adj_cell_id = get_adj_cell_to_corner(adj_matrix, cells, current_cell_id, corner)
+        adj_cell_id = get_adj_cell_to_corner(cells, current_cell_id, corner)
         if adj_cell_id is not None:
             if adj_cell_id == next_cell_id:
                 corners.append(corner)
@@ -518,7 +522,7 @@ def dist_intra_cells(
     length_path_1 = path_length(path_1)
     corner_end_1 = get_path_end_corner(path_1, corner_start_1)
     adj_cell_id = get_adj_cell_to_corner(
-        adj_matrix, cells, cell_1.cell_id, corner_end_1
+        cells, cell_1.cell_id, corner_end_1
     )
     if adj_cell_id == cell_2.cell_id:
         intra_path = get_pts_distance(
@@ -599,8 +603,6 @@ def reconstruct_path(
     n = len(cell_sequence)
     for i in range(n - 1, -1, -1):
         corner_start = np.argmin(dp_solution[i, :])
-        print("corner ", corner_start)
-        print("cell ", cell_sequence[i])
         path_i = create_path(
             cells[cell_sequence[i]], corner_start, coverage_radius=coverage_radius
         )
