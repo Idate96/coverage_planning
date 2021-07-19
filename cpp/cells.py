@@ -22,9 +22,12 @@ class Cell(object):
 
     @classmethod
     def from_image(cls, decomposed_image: np.array):
-        num_cells = len(set(decomposed_image.flatten()))
+        image_set = set(decomposed_image.flatten())
+        num_cells = len(image_set)
         height, width = np.shape(decomposed_image)
-        cells = [Cell(width - 1, 0, i) for i in range(num_cells)]
+        # init cells with extreme values of x_left and x_right
+        cells = {cell_id: Cell(width - 1, 0, cell_id) for cell_id in image_set}
+        # cells = [Cell(width - 1, 0, i) for i in range(num_cells)]
         for x in range(width):
             for y in range(height):
                 cell = cells[decomposed_image[y, x]]
@@ -50,7 +53,13 @@ class Cell(object):
                     cell.top[x] = y
                 elif cell.top[x] < y:
                     cell.top[x] = y
-        return cells[1:]
+
+        # reindex the cells ids (0 cell are obstables and should be taken out) (?)
+        for i in image_set:
+            cells[i].cell_id -= 1
+
+        cells_no_obstacles = [cell for cell in cells.values() if cell.cell_id != -1]
+        return cells_no_obstacles
 
     def get_corner_coordinates(self, corner_id: int) -> Tuple[int, int]:
         """Returns the coordinates of the corners of the cell
@@ -117,7 +126,6 @@ def plot_cells(list_cells: List[Cell], show=False):
             cell.left,
             markersize=boundary_width,
             markeredgecolor=boundary_color,
-
         )
         plt.plot(
             cell.x_right * np.ones(len(cell.right)),

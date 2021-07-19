@@ -1,6 +1,9 @@
 from collections import defaultdict
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import numpy as np
+from collections import defaultdict, namedtuple
+
+Arc = namedtuple("Arc", ("tail", "weight", "head"))
 
 
 class Graph(object):
@@ -130,8 +133,103 @@ class Graph(object):
         dfs_(node, visited)
         return visited
 
+    def graph_to_arcs(self) -> List[Arc]:
+        """Represent the graph as list of directed edges (arcs)
 
-def adj_matrix_to_dict(adj_matrix):
+        Returns:
+            List[Arc]: list of directed edges with weights
+        """
+        arcs = list()
+        for node in self.adj:
+            for neighboor in self.adj[node]:
+                # edges are unweighted
+                arcs.append(Arc(node, 1, neighboor))
+        return arcs
+
+    def graph_to_arcs_with_dfs(self, source) -> List[Arc]:
+        """Represent the graph as a list of directed edges (arcs) by
+        traversing the tree with depth first search (dfs).
+
+        Returns:
+            List[Arc]: list of directed edges with weights
+        """
+        visited = list()
+
+        def dfs_(node, visited_nodes, visited_edges):
+            for neighboor in self.adj[node]:
+                if not neighboor in visited_nodes:
+                    visited_nodes.append(neighboor)
+                    arc = Arc(node, 1, neighboor)
+                    if arc not in visited_edges:
+                        visited_edges.append(arc)
+                        dfs_(neighboor, visited_nodes, visited_edges)
+
+            for neighboor in self.adj[node]:
+                if neighboor in visited_nodes:
+                    arc = Arc(node, 1, neighboor)
+                    if arc not in visited_edges:
+                        visited_edges.append(arc)
+                        dfs_(neighboor, visited_nodes, visited_edges)
+
+        arcs = list()
+        # graph has at least one node
+        if self.adj:
+            dfs_(source, [source], arcs)
+
+        # add nodes that are not discovred with dfs
+        for node in self.adj:
+            if node not in visited:
+                if not self.node_has_only_undirected_edges(node):
+                    visited.append(node)
+                    dfs_(node, visited, arcs)
+
+        return arcs
+
+    def arcs_to_graph(self, arcs: List[Arc]):
+        """Generate a graph
+
+        Args:
+            arcs (List[Arc]): list of directed edges
+        """
+        self.adj = defaultdict(list)
+        for arc in arcs:
+            self.add_edge(arc.tail, arc.head, directed=True)
+
+    def node_has_only_undirected_edges(self, node) -> bool:
+        """Check if a node has only undirected edges
+
+        Args:
+            node (int): node
+
+        Returns:
+            bool: True if the node has only undirected edges
+        """
+        for neighboor in self.adj[node]:
+            if node not in self.adj[neighboor]:
+                return False
+        return True
+    
+    def reverse_graph_edges(self):
+        """Reverse the direction of all the edges in the graph
+        """
+        tmp_adj = self.adj.copy()
+        self.adj = defaultdict(list)
+        for node in tmp_adj:
+            for neighboor in tmp_adj[node]:
+                self.add_edge(neighboor, node, directed=True)
+
+
+
+def adj_matrix_to_dict(adj_matrix: np.array) -> Dict[int, List[int]]:
+    """Convert adjacency matrix to a dict of lists.
+    This is used since the Graph class constructor only takes a list of edges.
+
+    Args:
+        adj_matrix (np.array): graph as adjacency matrix
+
+    Returns:
+        graph_dict (Dict[int, List[int]]): graph as adjacency list
+    """
     adj_matrix = adj_matrix.astype(np.bool)
     graph_dict = defaultdict(list)
     n, _ = np.shape(adj_matrix)
@@ -143,3 +241,97 @@ def adj_matrix_to_dict(adj_matrix):
                 graph_dict[node_id].append(neighboor_id)
 
     return graph_dict
+
+
+# find a minimum spanning tree of weighted graph
+# from https://stackoverflow.com/questions/23988236/chu-liu-edmonds-algorithm-for-minimum-spanning-tree-on-directed-graphs/38757262
+
+
+def min_spanning_arborescence(arcs, sink):
+    """Find a minimum spanning arborescence of directed graph.
+    The algorithm should run in O(EV) time.
+
+    Args:
+        arcs ([type]): [description]
+        sink ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    good_arcs = []
+    quotient_map = {arc.tail: arc.tail for arc in arcs}
+    quotient_map[sink] = sink
+    while True:
+        min_arc_by_tail_rep = {}
+        successor_rep = {}
+        for arc in arcs:
+            if arc.tail == sink:
+                continue
+            tail_rep = quotient_map[arc.tail]
+            head_rep = quotient_map[arc.head]
+            if tail_rep == head_rep:
+                continue
+            if (
+                tail_rep not in min_arc_by_tail_rep
+                or min_arc_by_tail_rep[tail_rep].weight > arc.weight
+            ):
+                min_arc_by_tail_rep[tail_rep] = arc
+                successor_rep[tail_rep] = head_rep
+        cycle_reps = find_cycle(successor_rep, sink)
+        if cycle_reps is None:
+            good_arcs.extend(min_arc_by_tail_rep.values())
+            return spanning_arborescence(good_arcs, sink)
+        good_arcs.extend(min_arc_by_tail_rep[cycle_rep] for cycle_rep in cycle_reps)
+        cycle_rep_set = set(cycle_reps)
+        cycle_rep = cycle_rep_set.pop()
+        quotient_map = {
+            node: cycle_rep if node_rep in cycle_rep_set else node_rep
+            for node, node_rep in quotient_map.items()
+        }
+
+
+def find_cycle(successor, sink):
+    visited = {sink}
+    for node in successor:
+        cycle = []
+        while node not in visited:
+            visited.add(node)
+            cycle.append(node)
+            node = successor[node]
+        if node in cycle:
+            return cycle[cycle.index(node) :]
+    return None
+
+
+def spanning_arborescence(arcs, sink):
+    arcs_by_head = defaultdict(list)
+    for arc in arcs:
+        if arc.tail == sink:
+            continue
+        arcs_by_head[arc.head].append(arc)
+    solution_arc_by_tail = {}
+    stack = arcs_by_head[sink]
+    while stack:
+        arc = stack.pop()
+        if arc.tail in solution_arc_by_tail:
+            continue
+        solution_arc_by_tail[arc.tail] = arc
+        stack.extend(arcs_by_head[arc.tail])
+    return solution_arc_by_tail
+
+
+if __name__ == "__main__":
+    list_arcs = [
+        Arc(0, 1, 1),
+        Arc(1, 1, 0),
+        Arc(1, 1, 5),
+        Arc(5, 1, 1),
+        Arc(5, 1, 3),
+        Arc(3, 1, 5),
+        Arc(4, 1, 5),
+        Arc(2, 1, 0),
+        Arc(3, 1, 0),
+        Arc(3, 1, 0),
+    ]
+
+    print(min_spanning_arborescence(list_arcs, 0))

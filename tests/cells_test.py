@@ -6,9 +6,11 @@ from cpp.helpers import *
 
 
 def test_unique_cell():
+    # zero is reserved for obstacles!
     """Testes the trivial case with a single cell"""
-    simple_cell = np.zeros((10, 10), dtype=np.int)
-    cell = Cell.from_image(simple_cell)[0]
+    simple_cell = np.ones((10, 10), dtype=int)
+    decomposed_image = create_mask(simple_cell)
+    cell = Cell.from_image(decomposed_image)[0]
 
     target_cell = Cell(0, 10)
     target_cell.left = list(range(10))
@@ -38,8 +40,8 @@ def test_unique_cell():
 
 
 def test_simple_cell():
-    simple_cell = np.zeros((10, 10), dtype=np.int)
-    simple_cell[:, :5] = 1
+    simple_cell = np.ones((10, 10), dtype=np.int)
+    simple_cell[:, :5] = 2
     cells = Cell.from_image(simple_cell)
 
     target_cell = Cell(0, 10)
@@ -102,8 +104,8 @@ def test_simple_cell():
 
 
 def test_simple_cell_2():
-    simple_cell = np.zeros((10, 10), dtype=np.int)
-    simple_cell[:5, :] = 1
+    simple_cell = np.ones((10, 10), dtype=np.int)
+    simple_cell[:5, :] = 2
     cells = Cell.from_image(simple_cell)
 
     target_cell = Cell(0, 10)
@@ -138,7 +140,6 @@ def test_simple_cell_2():
 
 def test_cell_boundaries():
     expected_boundaries = [
-        (0, 0),
         (0, 47),
         (48, 200),
         (48, 108),
@@ -148,7 +149,7 @@ def test_cell_boundaries():
         (474, 516),
         (517, 601),
         (517, 601),
-        (602, 639)
+        (602, 639),
     ]
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
@@ -176,6 +177,15 @@ def test_plotting_map():
     # plot_cells(cells)
 
 
+def test_plotting_h_map():
+    image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    decomposed = create_mask(image)
+    cells = Cell.from_image(decomposed)
+    plt.imshow(decomposed)
+    plot_cells(cells)
+    plt.savefig("data/test/h_decomposed_0.png")
+
+
 def test_simple_plotting_map():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
@@ -192,9 +202,9 @@ def test_bsd_path():
     cells = Cell.from_image(decomposed)
     print(len(cells))
     for i in range(1, len(cells)):
-        path = create_path(cells[i], 0, 0, coverage_radius=10)
-        plot_path(path, show=True)
-    plt.show()
+        path = create_path(cells[i], 0, coverage_radius=10)
+        plot_path(path, show=False)
+    # plt.show()
 
 
 def test_filter_cells():
@@ -208,10 +218,9 @@ def test_filter_cells():
 
     # filter cells
     left_cells = filter_cells(cells[5], cells=cells, side="left")
-    assert [cell.cell_id for cell in left_cells] == [1, 2, 3, 4]
+    assert [cell.cell_id for cell in left_cells] == [0, 1, 2, 3]
     right_cells = filter_cells(cells[5], cells=cells, side="right")
-    assert [cell.cell_id for cell in right_cells] == [7, 8, 9, 10]
-
+    assert [cell.cell_id for cell in right_cells] == [6, 7, 8, 9]
 
 
 if __name__ == "__main__":
