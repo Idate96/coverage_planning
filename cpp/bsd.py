@@ -521,26 +521,29 @@ def dist_intra_cells(
     length_path_1 = path_length(path_1)
     corner_end_1 = get_path_end_corner(path_1, corner_start_1)
     adj_cell_id = get_adj_cell_to_corner(cells, cell_1.cell_id, corner_end_1)
-
-    intra_path = get_pts_distance(
-        path_1[-1], cell_2.get_corner_coordinates(corner_start_2)
-    )
-
-    if adj_contraint:
-        if not adj_cell_id == cell_2.cell_id:
-            intra_path = np.infty
-    else:
-        list_cells_ids = [cell.cell_id for cell in cells]
-        print("free cells : ", list_cells_ids)
-        print(
-            "curretn cell, end corner and adj cell ",
-            (cell_1.cell_id, corner_end_1, adj_cell_id),
+    
+    # if next cell is not given just return the path length
+    if cell_2:
+        intra_path = get_pts_distance(
+            path_1[-1], cell_2.get_corner_coordinates(corner_start_2)
         )
-        print("next cell and start corner 2 ", (cell_2.cell_id, corner_start_2))
-        if adj_cell_id not in list_cells_ids:
-            intra_path = np.infty
-    print("path length ", intra_path)
-    print("path inner ", length_path_1)
+
+        if adj_contraint:
+            if not adj_cell_id == cell_2.cell_id:
+                intra_path = np.infty
+        else:
+            list_cells_ids = [cell.cell_id for cell in cells]
+            print("free cells : ", list_cells_ids)
+            print(
+                "curretn cell, end corner and adj cell ",
+                (cell_1.cell_id, corner_end_1, adj_cell_id),
+            )
+            print("next cell and start corner 2 ", (cell_2.cell_id, corner_start_2))
+            if adj_cell_id not in list_cells_ids:
+                intra_path = np.infty
+        print("path length ", intra_path)
+        print("path inner ", length_path_1)
+
     return intra_path + length_path_1
 
 
@@ -588,13 +591,13 @@ def shortest_path(
 
     num_corners = 4
     n = len(cell_sequence)
-    dp = np.zeros((len(sequence), num_corners))
+    dp = np.ones((len(sequence), num_corners)) * np.infty
     # for i in range(4):
     #     path_0i = create_path(
     #         ordered_cells[0], i, coverage_radius=coverage_radius
     #     )
     #     dp[0, i] = path_length(path_0i)
-
+    next_corner_idx = 0
     for i in range(len(cell_sequence) - 1):
         print("cell id ", ordered_cells[i].cell_id)
         for j in range(num_corners):
@@ -615,11 +618,14 @@ def shortest_path(
                     dist = path_ijk
                 if dist < shortest_path:
                     shortest_path = dist
+                    next_corner_idx = k
             print(" shortest path ", shortest_path)
             dp[i, j] = shortest_path
 
         if np.allclose(dp[i, :], np.infty):
             raise AssertionError("No path found")
+    # boundary condition 
+    dp[-1, next_corner_idx] = min(dp[-2, :]) + path_length(create_path(ordered_cells[-1], next_corner_idx, coverage_radius=10))
     return dp
 
 
