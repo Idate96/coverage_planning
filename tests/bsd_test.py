@@ -545,6 +545,7 @@ def test_plotter():
 
     plt.savefig("logs/images/image_decomposed.jpg")
 
+
 def test_shortest_path_dijstra():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
@@ -563,7 +564,113 @@ def test_shortest_path_dijstra():
     longest_tree.add_edges(tree_edges)
 
 
+def test_global_path_concave_obstacles_dijstra():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    graph_adj_matrix, decomposed_image = get_directed_global_adj_matrix(binary_image)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    cells = Cell.from_image(decomposed_image)
+
+    graph = Graph(graph_adj_dict)
+    start_node = 0
+    mst_arcs = min_spanning_arborescence(
+        graph.graph_to_arcs_with_dfs(source=start_node), sink=start_node
+    ).values()
+    mst_graph = Graph()
+    mst_graph.arcs_to_graph(mst_arcs)
+    mst_graph.reverse_graph_edges()
+
+    graph_adj_matrix_unweighted, decomposed_im = create_global_adj_matrix(binary_image)
+    graph_adj_dict_unweighted = adj_matrix_to_dict(graph_adj_matrix_unweighted)
+    graph_unweighted = Graph(graph_adj_dict_unweighted)
+    graph_unweighted.weights = get_distance_between_cells(graph_unweighted.adj, cells)
+
+    post_order_traversal_sorted = mst_graph.post_order_traversal_sorted(
+        start_node, graph_unweighted
+    )
+    visited = list(reversed(post_order_traversal_sorted))
+    # create cells
+
+    # shortest path
+    dp = shortest_path(cells=cells, cell_sequence=visited, coverage_radius=10)
+
+    path = reconstruct_path(dp, cells, visited, coverage_radius=10)
+    plot_cells(cells, show=False)
+    plot_global_path(path, show=False)
+    plt.imshow(binary_image)
+    plt.savefig("data/test/test_concave_obs_path_dijstra.png")
+
+
+def test_global_path_concave_obstacles_dijstra_1():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=1)
+    graph_adj_matrix, decomposed_image = get_directed_global_adj_matrix(binary_image)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    cells = Cell.from_image(decomposed_image)
+
+    graph = Graph(graph_adj_dict)
+    start_node = 0
+    mst_arcs = min_spanning_arborescence(
+        graph.graph_to_arcs_with_dfs(source=start_node), sink=start_node
+    ).values()
+    mst_graph = Graph()
+    mst_graph.arcs_to_graph(mst_arcs)
+    mst_graph.reverse_graph_edges()
+
+    graph_adj_matrix_unweighted, decomposed_im = create_global_adj_matrix(binary_image)
+    graph_adj_dict_unweighted = adj_matrix_to_dict(graph_adj_matrix_unweighted)
+    graph_unweighted = Graph(graph_adj_dict_unweighted)
+    graph_unweighted.weights = get_distance_between_cells(graph_unweighted.adj, cells)
+
+    post_order_traversal_sorted = mst_graph.post_order_traversal_sorted(
+        start_node, graph_unweighted
+    )
+    visited = list(reversed(post_order_traversal_sorted))
+    # create cells
+
+    # shortest path
+    dp = shortest_path(cells=cells, cell_sequence=visited, coverage_radius=10)
+    path = reconstruct_path(dp, cells, visited, coverage_radius=10)
+    plot_cells(cells, show=False, fontsize=5)
+    plot_global_path(path, show=False, markersize=5)
+    plt.imshow(binary_image)
+    plt.savefig("data/test/test_concave_obs_path_dijstra_1.pdf", dpi=300)
+
+
+def test_global_path_concave_obstacles_dijstra_2():
+    binary_image = recurvise_H_map((4000, 6000), invert=True, num_recursions=2)
+    graph_adj_matrix, decomposed_image = get_directed_global_adj_matrix(binary_image)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    cells = Cell.from_image(decomposed_image)
+
+    graph = Graph(graph_adj_dict)
+    start_node = 0
+    mst_arcs = min_spanning_arborescence(
+        graph.graph_to_arcs_with_dfs(source=start_node), sink=start_node
+    ).values()
+    mst_graph = Graph()
+    mst_graph.arcs_to_graph(mst_arcs)
+    mst_graph.reverse_graph_edges()
+
+    graph_adj_matrix_unweighted, decomposed_im = create_global_adj_matrix(binary_image)
+    graph_adj_dict_unweighted = adj_matrix_to_dict(graph_adj_matrix_unweighted)
+    graph_unweighted = Graph(graph_adj_dict_unweighted)
+    graph_unweighted.weights = get_distance_between_cells(graph_unweighted.adj, cells)
+
+    post_order_traversal_sorted = mst_graph.post_order_traversal_sorted(
+        start_node, graph_unweighted
+    )
+    visited = list(reversed(post_order_traversal_sorted))
+    # create cells
+
+    # shortest path
+    dp = shortest_path(cells=cells, cell_sequence=visited, coverage_radius=10)
+    path = reconstruct_path(dp, cells, visited, coverage_radius=10)
+    plot_cells(cells, show=False, fontsize=1)
+    plot_global_path(path, show=False, markersize=1)
+    plt.imshow(binary_image)
+    plt.savefig("data/test/test_concave_obs_path_dijstra_2_wo_cells.pdf", dpi=300)
+
+
 if __name__ == "__main__":
     # test_directed_global_adj_matrix_concave_obstacles()
     # test_global_path()
-    test_global_path_concave_obstacles()
+    test_global_path_concave_obstacles_dijstra_1()

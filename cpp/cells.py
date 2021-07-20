@@ -135,7 +135,7 @@ def get_distance_between_cells(
     return distance
 
 
-def plot_cells(list_cells: List[Cell], show=False):
+def plot_cells(list_cells: List[Cell], show=False, fontsize=10):
     """Plot the different identified cells
 
     Args:
@@ -171,6 +171,7 @@ def plot_cells(list_cells: List[Cell], show=False):
             cell.get_center()[0],
             cell.get_center()[1],
             str(cell.cell_id),
+            fontsize=fontsize,  
             ha="center",
             va="center",
         )

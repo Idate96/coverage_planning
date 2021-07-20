@@ -12,11 +12,11 @@ def plot_decomposed_image(image, show=True):
         plt.show()
 
 
-def plot_path(path: List[Tuple[int, int]], show=False):
+def plot_path(path: List[Tuple[int, int]], show=False, markersize=10):
     # plot start pt
-    plt.plot(path[0][0], path[0][1], "o")
+    plt.plot(path[0][0], path[0][1], "o", markersize=markersize)
     # ploe end pt
-    plt.plot(path[-1][0], path[-1][1], "x")
+    plt.plot(path[-1][0], path[-1][1], "x", markersize=markersize)
 
     # plot whole path
     x, y = zip(*path)
@@ -31,13 +31,13 @@ def distance_pts(pt1: Tuple[int, int], pt2: Tuple[int, int]) -> float:
     """
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
-def plot_global_path(path: List[List[Tuple[int, int]]], show=True):
+def plot_global_path(path: List[List[Tuple[int, int]]], show=True, markersize=10):
     # store segments across cells
     intersection_segments = []
 
     # plot local cell paths
     for cell_path in path:
-        plot_path(cell_path, show=False)
+        plot_path(cell_path, show=False, markersize=markersize)
 
     for i in range(len(path) - 1):
         intersection_segments.append([path[i][-1], path[i + 1][0]])
@@ -45,7 +45,7 @@ def plot_global_path(path: List[List[Tuple[int, int]]], show=True):
     for segment in intersection_segments:
         x, y = zip(*segment)
         plt.gca().invert_yaxis()
-        plt.plot(x, y, "--")
+        plt.plot(x, y, "--", markersize=markersize)
     if show:
         plt.show()
 

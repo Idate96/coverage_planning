@@ -36,8 +36,12 @@ class Graph(object):
     def add_edges(
         self, edges: List[Tuple[int, int]], directed=True, weights: List[int] = None
     ) -> None:
-        for i, edge in enumerate(edges):
-            self.add_edge(edge[0], edge[1], directed=directed, weight=weights[i])
+        if weights:
+            for i, edge in enumerate(edges):
+                self.add_edge(edge[0], edge[1], directed=directed, weight=weights[i])
+        else:
+            for i, edge in enumerate(edges):
+                self.add_edge(edge[0], edge[1], directed=directed)
 
     def DFS(self, root) -> List[int]:
         """Depth First Search traversal of the graph
