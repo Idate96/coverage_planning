@@ -164,10 +164,8 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
             for x in range(x_current, x_next):
                 # check if we are the top or bottom
                 if vertical_dir == "down":
-                    # print("options ", cell.top[x] - coverage_radius, cell.bottom[x])
                     y = max(cell.top[x] - coverage_radius, cell.bottom[x])
                 else:
-                    # print("bottom options ")
                     y = min(cell.bottom[x] + coverage_radius, cell.top[x])
                 path.append((x, y))
 
@@ -356,91 +354,6 @@ def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
     return adj
 
 
-# def get_corners_adj_to_cell(
-#     adj_matrix: np.array, cells: List[Cell], cell_id: int
-# ) -> List[Tuple[int, int]]:
-#     """Finds the adjacency of the corners of a cell
-
-#     Args:
-#         adj_matrix (np.array): adjacency matrix of the workspace
-#         cells (List[Cell]): list of cells
-#         cell_id (int): id of the cell
-
-#     Returns:
-#         List[Tuple[int, int]]: list of adjacency ids of the corners of the cell in the following
-#                                format (cell_id, corner_id)
-#     """
-#     # neightbouring cells
-#     neighbours = []
-#     for i in range(len(cells)):
-#         if adj_matrix[cell_id, i]:
-#             neighbours.append(i)
-
-#     # corners of the cell
-#     corners = []
-#     left_to_right = False
-
-#     for i in range(len(neighbours)):
-#         # left to right or viceversa coverage
-#         if cells[cell_id].x_left > cells[neighbours[i]].x_right:
-#             left_to_right = False
-#         else:
-#             left_to_right = True
-#     pass
-
-
-# def get_adj_corners_next_cell(
-#     cells: List[Cell], cell_id: int, next_cell_id: int
-# ) -> List[int]:
-#     """Finds the adjacency of the corners of a cell wrt to an adjacent cell. It is assumed that the cells are adjancent.
-
-#     Args:
-#         cells (List[Cell]): list of cells
-#         cell_id (int): id of the cell
-#         next_cell_id (int): id of the next cell
-
-#     Returns:
-#         corners (List[int]): list of adjacent corners of the next cell
-#     """
-#     # corners of the cell
-#     corners = []
-
-#     # left to right or viceversa coverage
-#     if cells[cell_id].x_left > cells[next_cell_id].x_right:
-#         left_to_right = False
-#     else:
-#         left_to_right = True
-
-#     if left_to_right:
-#         # check if top of the cell is higher than the top of the next cell
-#         if (
-#             cells[cell_id].top[cells[cell_id].x_right]
-#             >= cells[next_cell_id].top[cells[next_cell_id].x_left]
-#         ):
-#             corners.append(3)
-#         # check if bottom of the cell is lower than the bottom of the next cell
-#         if (
-#             cells[cell_id].bottom[cells[next_cell_id].x_left]
-#             <= cells[next_cell_id].bottom[cells[cell_id].x_left]
-#         ):
-#             corners.append(2)
-#     else:
-#         # check if top of the cell is higher than the top of the next cell
-#         if (
-#             cells[cell_id].top[cells[cell_id].x_left]
-#             >= cells[next_cell_id].top[cells[next_cell_id].x_right]
-#         ):
-#             corners.append(0)
-#         # check if bottom of the cell is lower than the bottom of the next cell
-#         if (
-#             cells[cell_id].bottom[cells[cell_id].x_right]
-#             <= cells[next_cell_id].bottom[cells[next_cell_id].x_right]
-#         ):
-#             corners.append(1)
-
-#     return corners
-
-
 def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int) -> int:
     """Returns the cell id adjent to the corner of the current cell
 
@@ -534,16 +447,8 @@ def dist_intra_cells(
                 intra_path = np.infty
         else:
             list_cells_ids = [cell.cell_id for cell in cells]
-            print("free cells : ", list_cells_ids)
-            print(
-                "curretn cell, end corner and adj cell ",
-                (cell_1.cell_id, corner_end_1, adj_cell_id),
-            )
-            print("next cell and start corner 2 ", (cell_2.cell_id, corner_start_2))
             if adj_cell_id not in list_cells_ids:
                 intra_path = np.infty
-        print("path length ", intra_path)
-        print("path inner ", length_path_1)
 
     return intra_path + length_path_1
 
@@ -600,7 +505,6 @@ def shortest_path(
     #     dp[0, i] = path_length(path_0i)
     next_corner_idx = 0
     for i in range(len(cell_sequence) - 1):
-        print("cell id ", ordered_cells[i].cell_id)
         for j in range(num_corners):
             shortest_path = np.infty
             for k in range(num_corners):
@@ -620,7 +524,6 @@ def shortest_path(
                 if dist < shortest_path:
                     shortest_path = dist
                     next_corner_idx = k
-            print(" shortest path ", shortest_path)
             dp[i, j] = shortest_path
 
         if np.allclose(dp[i, :], np.infty):
