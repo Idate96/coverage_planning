@@ -632,11 +632,11 @@ def test_global_path_concave_obstacles_dijstra_1():
     plot_cells(cells, show=False, fontsize=5)
     plot_global_path(path, show=False, markersize=5)
     plt.imshow(binary_image)
-    plt.savefig("data/test/test_concave_obs_path_dijstra_1.pdf", dpi=300)
+    plt.savefig("data/test/test_concave_obs_path_dijstra_1_.pdf", dpi=300)
 
 
 def test_global_path_concave_obstacles_dijstra_2():
-    binary_image = recurvise_H_map((4000, 6000), invert=True, num_recursions=2)
+    binary_image = recurvise_H_map((800, 1200), invert=True, num_recursions=2)
     graph_adj_matrix, decomposed_image = get_directed_global_adj_matrix(binary_image)
     graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
     cells = Cell.from_image(decomposed_image)
@@ -662,15 +662,18 @@ def test_global_path_concave_obstacles_dijstra_2():
     # create cells
 
     # shortest path
-    dp = shortest_path(cells=cells, cell_sequence=visited, coverage_radius=10)
-    path = reconstruct_path(dp, cells, visited, coverage_radius=10)
+    coverage_radius = 2
+    dp = shortest_path(
+        cells=cells, cell_sequence=visited, coverage_radius=coverage_radius
+    )
+    path = reconstruct_path(dp, cells, visited, coverage_radius=coverage_radius)
     plot_cells(cells, show=False, fontsize=1)
-    plot_global_path(path, show=False, markersize=1)
+    plot_global_path(path, show=False, markersize=5)
     plt.imshow(binary_image)
-    plt.savefig("data/test/test_concave_obs_path_dijstra_2_wo_cells.pdf", dpi=300)
+    plt.savefig("data/test/test_concave_obs_path_dijstra_2_.pdf", dpi=300)
 
 
 if __name__ == "__main__":
     # test_directed_global_adj_matrix_concave_obstacles()
     # test_global_path()
-    test_global_path_concave_obstacles_dijstra_1()
+    test_global_path_concave_obstacles_dijstra_2()

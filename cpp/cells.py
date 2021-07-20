@@ -127,11 +127,11 @@ def get_distance_between_cells(
     for ci in adj_matrix.keys():
         distance[ci] = {}
         for cj in adj_matrix[ci]:
-            distance[ci][cj] = distance_pts(cell_dict[ci].get_center(), cell_dict[cj].get_center())
+            distance[ci][cj] = distance_pts(
+                cell_dict[ci].get_center(), cell_dict[cj].get_center()
+            )
         # remove entries with distance 0
-        distance[ci] = {
-            k: v for k, v in distance[ci].items() if not np.isclose(v, 0)
-        }
+        distance[ci] = {k: v for k, v in distance[ci].items() if not np.isclose(v, 0)}
     return distance
 
 
@@ -141,7 +141,7 @@ def plot_cells(list_cells: List[Cell], show=False, fontsize=10):
     Args:
         list_cells (List[Cell]): list of separate cells
     """
-    boundary_width = 1
+    boundary_width = 1 * fontsize / 10
     boundary_color = "red"
 
     for cell in list_cells:
@@ -171,7 +171,7 @@ def plot_cells(list_cells: List[Cell], show=False, fontsize=10):
             cell.get_center()[0],
             cell.get_center()[1],
             str(cell.cell_id),
-            fontsize=fontsize,  
+            fontsize=fontsize,
             ha="center",
             va="center",
         )
