@@ -1,5 +1,7 @@
+from collections import defaultdict
+from cpp.helpers import distance_pts
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import matplotlib.pyplot as plt
 
 
@@ -105,8 +107,32 @@ class Cell(object):
     def get_center(self) -> Tuple[int, int]:
         """Returns the coordinates of the center of the cell"""
         return (self.x_left + self.x_right) // 2, (
-            self.top[self.x_left] + self.bottom[self.x_right]
+            (self.top[self.x_left] + self.top[self.x_right]) // 2
+            + (self.bottom[self.x_left] + self.bottom[self.x_right]) // 2
         ) // 2
+
+
+def get_distance_between_cells(
+    adj_matrix: Dict[int, List[int]], cells: List[Cell]
+) -> Dict[int, Dict[int, int]]:
+    """Returns the distance between cells
+    Args:
+        adj_matrix (np.array): adjacency matrix
+        cells (List[Cell]): list of cells
+    Returns:
+        distance (Dict[int, Dict[int, int]]): distance between cells
+    """
+    cell_dict = {cell.cell_id: cell for cell in cells}
+    distance = {}
+    for ci in adj_matrix.keys():
+        distance[ci] = {}
+        for cj in adj_matrix[ci]:
+            distance[ci][cj] = distance_pts(cell_dict[ci].get_center(), cell_dict[cj].get_center())
+        # remove entries with distance 0
+        distance[ci] = {
+            k: v for k, v in distance[ci].items() if not np.isclose(v, 0)
+        }
+    return distance
 
 
 def plot_cells(list_cells: List[Cell], show=False):

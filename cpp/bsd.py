@@ -273,6 +273,7 @@ def get_path_end_corner(path: List[Tuple[int, int]], corner_start: int) -> int:
 #         raise ValueError("Path does not start at left or right")
 
 
+
 def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     """Creates a graph representing the global connectivity of the workspace cells
 

@@ -26,6 +26,10 @@ def plot_path(path: List[Tuple[int, int]], show=False):
     if show:
         plt.show()
 
+def distance_pts(pt1: Tuple[int, int], pt2: Tuple[int, int]) -> float:
+    """Calculate the distance between two points
+    """
+    return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
 def plot_global_path(path: List[List[Tuple[int, int]]], show=True):
     # store segments across cells

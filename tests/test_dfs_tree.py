@@ -175,7 +175,6 @@ def test_create_arcs_dfs():
     arc_edges = graph.graph_to_arcs()
     arc_edges_dsf = graph.graph_to_arcs_with_dfs(0)
 
-
     for arc in arc_edges:
         assert arc in arc_edges_dsf
     for arc in arc_edges_dsf:
@@ -226,6 +225,7 @@ def test_minimum_spanning_tree_directed_graph():
     print(mst)
     print(mst_dfs)
 
+
 def test_mst_dfs_directed_graph():
     binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
     graph_adj_matrix, decomposed_im = get_directed_global_adj_matrix(binary_image)
@@ -234,9 +234,16 @@ def test_mst_dfs_directed_graph():
     start_node = 0
     arc_edges = graph.graph_to_arcs_with_dfs(start_node)
     mst = min_spanning_arborescence(arc_edges, start_node)
-    # dfs like tree 
-    tree = {2: Arc(tail=2, weight=1, head=0), 3: Arc(tail=3, weight=1, head=0), 5: Arc(tail=5, weight=1, head=3), 4: Arc(tail=4, weight=1, head=5), 1: Arc(tail=1, weight=1, head=5)}
+    # dfs like tree
+    tree = {
+        2: Arc(tail=2, weight=1, head=0),
+        3: Arc(tail=3, weight=1, head=0),
+        5: Arc(tail=5, weight=1, head=3),
+        4: Arc(tail=4, weight=1, head=5),
+        1: Arc(tail=1, weight=1, head=5),
+    }
     assert mst == tree
+
 
 def test_reverse_graph():
     binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
@@ -251,6 +258,7 @@ def test_reverse_graph():
     mst.reverse_graph_edges()
     expected_dict = {2: [], 0: [2, 3], 3: [5], 5: [4, 1], 4: [], 1: []}
     assert mst.adj == expected_dict
+
 
 def test_post_order_traversal_mst():
     binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
@@ -267,5 +275,88 @@ def test_post_order_traversal_mst():
     expected_post_order_traversal = [2, 4, 1, 5, 3, 0]
     assert post_order_traversal == expected_post_order_traversal
 
+
+def test_assign_weights_to_edges():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    graph_adj_matrix, decomposed_im = get_directed_global_adj_matrix(binary_image)
+    cells = Cell.from_image(decomposed_im)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    graph = Graph(graph_adj_dict)
+    start_node = 0
+    arc_edges = graph.graph_to_arcs_with_dfs(start_node)
+    mst_arcs = min_spanning_arborescence(arc_edges, start_node).values()
+    mst = Graph()
+    mst.arcs_to_graph(mst_arcs)
+    mst.reverse_graph_edges()
+    mst.weights = get_distance_between_cells(mst.adj, cells)
+    post_order_traversal = mst.post_order_traversal(start_node)
+
+
+def test_dijstra():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    graph_adj_matrix, decomposed_im = get_directed_global_adj_matrix(binary_image)
+    cells = Cell.from_image(decomposed_im)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    graph = Graph(graph_adj_dict)
+    start_node = 0
+    arc_edges = graph.graph_to_arcs_with_dfs(start_node)
+    mst_arcs = min_spanning_arborescence(arc_edges, start_node).values()
+    mst = Graph()
+    mst.arcs_to_graph(mst_arcs)
+    mst.reverse_graph_edges()
+    mst.weights = get_distance_between_cells(mst.adj, cells)
+    # post_order_traversal = mst.post_order_traversal(start_node)
+
+    # mst_undirected = undirected_graph(mst)
+    # # print(mst_undirected.adj)
+    # mst_undirected.weights = get_distance_between_cells(mst_undirected.adj, cells)
+    # print(mst_undirected.adj)
+    dist, path = mst.djikstra(0, 4)
+    assert path == [4, 5, 3, 0]
+    assert int(dist) == 687
+
+
+def test_undirected_graph():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    graph_adj_matrix, decomposed_im = get_directed_global_adj_matrix(binary_image)
+    cells = Cell.from_image(decomposed_im)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    graph = Graph(graph_adj_dict)
+    start_node = 0
+    arc_edges = graph.graph_to_arcs_with_dfs(start_node)
+    mst_arcs = min_spanning_arborescence(arc_edges, start_node).values()
+    mst = Graph()
+    mst.arcs_to_graph(mst_arcs)
+    mst.reverse_graph_edges()
+    mst.weights = get_distance_between_cells(mst.adj, cells)
+    mst_undirected = undirected_graph(mst, copy_weights=True)
+    print(mst_undirected.weights)
+    print(mst.weights)
+
+
+def test_post_order_with_dijstra():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    graph_adj_matrix, decomposed_im = get_directed_global_adj_matrix(binary_image)
+    graph_adj_matrix_unweighted, decomposed_im = create_global_adj_matrix(binary_image)
+    cells = Cell.from_image(decomposed_im)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+    graph_adj_dict_unweighted = adj_matrix_to_dict(graph_adj_matrix_unweighted)
+    graph = Graph(graph_adj_dict)
+    graph.weights = get_distance_between_cells(graph.adj, cells)
+    start_node = 0
+    arc_edges = graph.graph_to_arcs_with_dfs(start_node)
+    mst_arcs = min_spanning_arborescence(arc_edges, start_node).values()
+    mst = Graph()
+    mst.arcs_to_graph(mst_arcs)
+    mst.reverse_graph_edges()
+    mst.weights = get_distance_between_cells(mst.adj, cells)
+    graph_unweighted = Graph(graph_adj_dict_unweighted)
+    graph_unweighted.weights = get_distance_between_cells(graph_unweighted.adj, cells)
+    post_order_traversal_sorted = mst.post_order_traversal_sorted(
+        start_node, graph_unweighted
+    )
+    assert post_order_traversal_sorted == [2, 1, 4, 5, 3, 0]
+
+
 if __name__ == "__main__":
-    test_post_order_traversal_mst()
+    test_post_order_with_dijstra()

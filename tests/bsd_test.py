@@ -545,6 +545,23 @@ def test_plotter():
 
     plt.savefig("logs/images/image_decomposed.jpg")
 
+def test_shortest_path_dijstra():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 150
+    graph_adj_matrix, _ = create_global_adj_matrix(binary_image)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+
+    graph = Graph(graph_adj_dict)
+    tree_edges = graph.DFS_tree(0)
+    graph_tree = Graph()
+    graph_tree.add_edges(tree_edges, directed=False)
+    diameter, new_root, furthest_node = graph_tree.find_diameter(0)
+
+    tree_edges = graph_tree.DFS_tree(new_root)
+    longest_tree = Graph()
+    longest_tree.add_edges(tree_edges)
+
 
 if __name__ == "__main__":
     # test_directed_global_adj_matrix_concave_obstacles()

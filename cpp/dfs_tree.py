@@ -7,13 +7,21 @@ Arc = namedtuple("Arc", ("tail", "weight", "head"))
 
 
 class Graph(object):
-    def __init__(self, adj_list=None) -> None:
+    def __init__(
+        self,
+        adj_list: Dict[int, List[int]] = None,
+        weights: Dict[int, Dict[int, int]] = None,
+    ) -> None:
         super().__init__()
         self.adj = defaultdict(list)
+        self.weights = defaultdict(lambda: defaultdict(int))
+
         if adj_list:
             self.adj = adj_list
+            if weights:
+                self.weights = weights
 
-    def add_edge(self, u, v, directed=True):
+    def add_edge(self, u, v, directed=True, weight=None):
         # check if v is in adj
         if v not in self.adj:
             self.adj[v] = list()
@@ -22,9 +30,14 @@ class Graph(object):
         if not directed:
             self.adj[v].append(u)
 
-    def add_edges(self, edges: List[Tuple[int, int]], directed=True):
-        for edge in edges:
-            self.add_edge(edge[0], edge[1], directed=directed)
+        if weight:
+            self.weights[u][v] = weight
+
+    def add_edges(
+        self, edges: List[Tuple[int, int]], directed=True, weights: List[int] = None
+    ) -> None:
+        for i, edge in enumerate(edges):
+            self.add_edge(edge[0], edge[1], directed=directed, weight=weights[i])
 
     def DFS(self, root) -> List[int]:
         """Depth First Search traversal of the graph
@@ -133,6 +146,32 @@ class Graph(object):
         dfs_(node, visited)
         return visited
 
+    def post_order_traversal_sorted(self, node, original_graph) -> List[int]:
+        """Post order traversal of the graph.
+        While doing the DFS the neighboors are sorted using the distance from the last visited node.
+        The sorting is done by running djikstra's algorithm on the original graph.
+        """
+
+        visited = list()
+
+        def dfs_(node, visited):
+            if visited:
+                last_visited = visited[-1]
+                # sort nodes at equal heights (distance from last visited node)
+                neighboors = sorted(
+                    self.adj[node],
+                    key=lambda x: original_graph.djikstra(last_visited, x),
+                )
+            else:
+                neighboors = self.adj[node]
+
+            for neighboor in neighboors:
+                dfs_(neighboor, visited)
+            visited.append(node)
+
+        dfs_(node, visited)
+        return visited
+
     def graph_to_arcs(self) -> List[Arc]:
         """Represent the graph as list of directed edges (arcs)
 
@@ -208,19 +247,83 @@ class Graph(object):
             if node not in self.adj[neighboor]:
                 return False
         return True
-    
+
     def reverse_graph_edges(self):
-        """Reverse the direction of all the edges in the graph
-        """
+        """Reverse the direction of all the edges in the graph"""
         tmp_adj = self.adj.copy()
         self.adj = defaultdict(list)
         for node in tmp_adj:
             for neighboor in tmp_adj[node]:
                 self.add_edge(neighboor, node, directed=True)
 
+    def djikstra(self, source: int, target: int) -> int:
+        """Find the shortest path from source to target using Dijkstra's algorithm"""
+        # init
+        visited = list()
+        dist = dict()
+        prev = dict()
+        for node in self.adj:
+            dist[node] = float("inf")
+            prev[node] = None
+        dist[source] = 0
+        prev[source] = None
+        # run
+        while len(visited) < len(self.adj):
+            # get node with minimum distance that is not visited
+            node = min(
+                dist, key=lambda x: dist[x] if x not in visited else float("inf")
+            )
+            visited.append(node)
+            # update distances
+            for neighboor in self.adj[node]:
+                if neighboor in visited:
+                    continue
+                alt = dist[node] + self.weights[node][neighboor]
+                if alt < dist[neighboor]:
+                    dist[neighboor] = alt
+                    prev[neighboor] = node
+
+        # find path
+
+        path = list()
+        curr = target
+        while curr != source:
+            path.append(curr)
+            curr = prev[curr]
+        path.append(curr)
+        return dist[target], path
 
 
-def connected_cells(adj_matrix: np.ndarray, cell_1, cell_2) -> bool: 
+def undirected_graph(graph: Graph, copy_weights=False) -> Graph:
+    """Generate an undirected graph from a directed graph
+
+    Args:
+        graph (Graph): directed graph
+
+    Returns:
+        graph_undirected: undirected graph
+    """
+    undirected_graph = defaultdict(list)
+    undirected_graph_weights = defaultdict(lambda: defaultdict(int))
+    for node in graph.adj:
+        for neighboor in graph.adj[node]:
+            undirected_graph[node].append(neighboor)
+            undirected_graph[neighboor].append(node)
+
+    if copy_weights:
+        for node in graph.adj:
+            for neighboor in graph.adj[node]:
+                undirected_graph_weights[node][neighboor] = graph.weights[node][
+                    neighboor
+                ]
+                undirected_graph_weights[neighboor][node] = graph.weights[node][
+                    neighboor
+                ]
+
+    return Graph(undirected_graph, weights=undirected_graph_weights)
+
+
+def connected_cells(adj_matrix: np.ndarray, cell_1, cell_2) -> bool:
     """Check if two cells are connected
 
     Args:

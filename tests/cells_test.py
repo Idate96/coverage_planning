@@ -3,6 +3,8 @@ from cpp.cells import *
 from cpp.bsd import *
 import matplotlib.image as mpimg
 from cpp.helpers import *
+import pytest
+from cpp.dfs_tree import *
 
 
 def test_unique_cell():
@@ -223,5 +225,27 @@ def test_filter_cells():
     assert [cell.cell_id for cell in right_cells] == [6, 7, 8, 9]
 
 
+def test_distance_cells():
+    image = mpimg.imread("data/test/map.jpg")
+    binary_image = image[:, :, 0] > 127
+    adj_matrix, decomposed_image = create_global_adj_matrix(binary_image)
+    adj_dict = adj_matrix_to_dict(adj_matrix)
+    cells = Cell.from_image(decomposed_image)
+    weights = get_distance_between_cells(adj_dict, cells)
+    assert weights[0][1] == weights[1][0]
+
+
+def test_distance_cells_directed():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    adj_matrix, decomposed_image = get_directed_global_adj_matrix(binary_image)
+    adj_dict = adj_matrix_to_dict(adj_matrix)
+    cells = Cell.from_image(decomposed_image)
+    weights = get_distance_between_cells(adj_dict, cells)
+    print(weights)
+    with pytest.raises(KeyError):
+        a = weights[0][2]
+    b = weights[2][0]
+
+
 if __name__ == "__main__":
-    test_bsd_path()
+    test_distance_cells_directed()
