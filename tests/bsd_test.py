@@ -253,24 +253,16 @@ def test_get_corner_to_adj_cell():
     cells = Cell.from_image(decomposed_image)
 
     # find adjent corners
-    adj_corners_3_1 = get_corners_to_adj_cell(
-        graph_adj_matrix, cells, current_cell_id=2, next_cell_id=0
-    )
+    adj_corners_3_1 = get_corners_to_adj_cell(cells, current_cell_id=2, next_cell_id=0)
     assert adj_corners_3_1 == [0, 1]
 
-    adj_corners_1_3 = get_corners_to_adj_cell(
-        graph_adj_matrix, cells, current_cell_id=0, next_cell_id=2
-    )
+    adj_corners_1_3 = get_corners_to_adj_cell(cells, current_cell_id=0, next_cell_id=2)
     assert adj_corners_1_3 == [2]
 
-    adj_corners_1_2 = get_corners_to_adj_cell(
-        graph_adj_matrix, cells, current_cell_id=0, next_cell_id=1
-    )
+    adj_corners_1_2 = get_corners_to_adj_cell(cells, current_cell_id=0, next_cell_id=1)
     assert adj_corners_1_2 == [3]
 
-    adj_corners_1_4 = get_corners_to_adj_cell(
-        graph_adj_matrix, cells, current_cell_id=0, next_cell_id=3
-    )
+    adj_corners_1_4 = get_corners_to_adj_cell(cells, current_cell_id=0, next_cell_id=3)
     assert adj_corners_1_4 == []
 
 
@@ -368,7 +360,13 @@ def test_distance_intra_cells():
     for corner_id in range(4):
         dist_0_1.append(
             dist_intra_cells(
-                adj_matrix, cells, cells[0], cells[1], corner_id, 0, coverage_radius=10
+                cells,
+                cells[0],
+                cells[1],
+                corner_id,
+                0,
+                coverage_radius=10,
+                adj_contraint=True,
             )
         )
 
@@ -379,7 +377,13 @@ def test_distance_intra_cells():
     for corner_id in range(4):
         dist_1_0.append(
             dist_intra_cells(
-                adj_matrix, cells, cells[1], cells[0], corner_id, 0, coverage_radius=10
+                cells,
+                cells[1],
+                cells[0],
+                corner_id,
+                0,
+                coverage_radius=10,
+                adj_contraint=True,
             )
         )
     expected_dist_1_0 = [np.infty, np.infty, 842.307, 791.809]
@@ -412,16 +416,14 @@ def test_shortest_path():
     # indexes of cells
     visited_simple = [1, 0, 2]
     # shortest path
-    dp = shortest_path(
-        graph_adj_matrix, cells=cells, cell_sequence=visited_simple, coverage_radius=10
-    )
+    dp = shortest_path(cells=cells, cell_sequence=visited_simple, coverage_radius=10)
 
 
 def test_global_path():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 150
-    graph_adj_matrix, _= create_global_adj_matrix(binary_image)
+    graph_adj_matrix, _ = create_global_adj_matrix(binary_image)
     graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
 
     graph = Graph(graph_adj_dict)
@@ -440,20 +442,43 @@ def test_global_path():
     decomposed_image = create_mask(binary_image)
     cells = Cell.from_image(decomposed_image)
 
-    # indexes of cells
-    visited_simple = [1, 0, 2]
-    path_0 = create_path(cells[1], 0, coverage_radius=10)
-
-
     # shortest path
     dp = shortest_path(
-        graph_adj_matrix, cells=cells, cell_sequence=visited, coverage_radius=10
+        cells=cells, cell_sequence=visited, coverage_radius=10, adj_contraint=False
     )
     path = reconstruct_path(dp, cells, visited, coverage_radius=10)
     plot_cells(cells, show=False)
     plot_global_path(path, show=False)
     plt.imshow(image)
-    plt.savefig("logs/images/test_path.png")
+    plt.savefig("data/test/test_path.png")
+
+
+def test_global_path_concave_obstacles():
+    binary_image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    graph_adj_matrix, decomposed_image = get_directed_global_adj_matrix(binary_image)
+    graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
+
+    graph = Graph(graph_adj_dict)
+    mst_arcs = min_spanning_arborescence(
+        graph.graph_to_arcs_with_dfs(source=0), sink=0
+    ).values()
+    mst_graph = Graph()
+    mst_graph.arcs_to_graph(mst_arcs)
+    mst_graph.reverse_graph_edges()
+    visited = list(reversed((mst_graph.post_order_traversal(node=0))))
+    print(visited)
+    # create cells
+    cells = Cell.from_image(decomposed_image)
+
+    # shortest path
+    # it does not work with non adjacent cells !!!
+    dp = shortest_path(cells=cells, cell_sequence=visited, coverage_radius=10)
+    print(dp)
+    path = reconstruct_path(dp, cells, visited, coverage_radius=10)
+    plot_cells(cells, show=False)
+    plot_global_path(path, show=False)
+    plt.imshow(binary_image)
+    plt.savefig("data/test/test_concave_obs_path.png")
 
 
 def test_small_global_path():
@@ -483,11 +508,8 @@ def test_small_global_path():
     visited_simple = [1, 0, 2]
     path_0 = create_path(cells[1], 0, coverage_radius=10)
 
-
     # shortest path
-    dp = shortest_path(
-        graph_adj_matrix, cells=cells, cell_sequence=visited_simple, coverage_radius=10
-    )
+    dp = shortest_path(cells=cells, cell_sequence=visited_simple, coverage_radius=10)
     path = reconstruct_path(dp, cells, visited_simple, coverage_radius=10)
     plot_cells(cells, show=False)
     plot_global_path(path, show=False)
@@ -526,4 +548,5 @@ def test_plotter():
 
 if __name__ == "__main__":
     # test_directed_global_adj_matrix_concave_obstacles()
-    test_find_connectivity()
+    # test_global_path()
+    test_global_path_concave_obstacles()

@@ -313,17 +313,16 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
 
 def get_directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     """Creates a directed graph representing the global connectivity of the workspace cells
-    
+
     Args:
         binary_image (np.ndarray): images or 0 and 1, encoding areas belonging
-    
+
     Returns:
         graph: directed graph of the cells connectivity
-    
+
     """
     decomposed_image = create_mask(binary_image)
     cells = Cell.from_image(decomposed_image)
-    
 
     directed_adj_matrix = np.zeros((len(cells), len(cells)))
     # cells only connects through corners, as those are the end points of the motion primitives
@@ -333,20 +332,20 @@ def get_directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
             adj_cell_id = get_adj_cell_to_corner(cells, cell.cell_id, corner)
             if adj_cell_id is not None:
                 directed_adj_matrix[cell.cell_id, adj_cell_id] = 1
-    
+
     return directed_adj_matrix, decomposed_image
 
 
 def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
     """Check if first cell is connected to second cell via a corner
-    
+
     Args:
         cell_1 (Cell): cell 1
         cell_2 (Cell): cell 2
-    
+
     Returns:
         adj: True if cell 1 is connected to cell 2 via a corner
-    
+
     """
     adj = False
     for corner in range(4):
@@ -354,6 +353,7 @@ def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
         if adj_cell_id is not None:
             adj = True
     return adj
+
 
 # def get_corners_adj_to_cell(
 #     adj_matrix: np.array, cells: List[Cell], cell_id: int
@@ -440,8 +440,7 @@ def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
 #     return corners
 
 
-def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int
-) -> int:
+def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int) -> int:
     """Returns the cell id adjent to the corner of the current cell
 
     Args:
@@ -482,7 +481,7 @@ def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int
 
 
 def get_corners_to_adj_cell(
-    adj_matrix: np.array, cells: List[Cell], current_cell_id: int, next_cell_id: int
+    cells: List[Cell], current_cell_id: int, next_cell_id: int
 ) -> List[int]:
     """Returns the cell id adjent to the corner of the current cell
 
@@ -508,29 +507,40 @@ def get_corners_to_adj_cell(
 
 
 def dist_intra_cells(
-    adj_matrix: np.array,
     cells: List[Cell],
     cell_1: Cell,
     cell_2: Cell,
     corner_start_1: int,
     corner_start_2: int,
     coverage_radius: int,
+    adj_contraint: bool = False,
 ):
     """Compute the distance between two points located in two adjancent cells"""
 
     path_1 = create_path(cell_1, corner_start_1, coverage_radius=coverage_radius)
     length_path_1 = path_length(path_1)
     corner_end_1 = get_path_end_corner(path_1, corner_start_1)
-    adj_cell_id = get_adj_cell_to_corner(
-        cells, cell_1.cell_id, corner_end_1
-    )
-    if adj_cell_id == cell_2.cell_id:
-        intra_path = get_pts_distance(
-            path_1[-1], cell_2.get_corner_coordinates(corner_start_2)
-        )
-    else:
-        intra_path = np.infty
+    adj_cell_id = get_adj_cell_to_corner(cells, cell_1.cell_id, corner_end_1)
 
+    intra_path = get_pts_distance(
+        path_1[-1], cell_2.get_corner_coordinates(corner_start_2)
+    )
+
+    if adj_contraint:
+        if not adj_cell_id == cell_2.cell_id:
+            intra_path = np.infty
+    else:
+        list_cells_ids = [cell.cell_id for cell in cells]
+        print("free cells : ", list_cells_ids)
+        print(
+            "curretn cell, end corner and adj cell ",
+            (cell_1.cell_id, corner_end_1, adj_cell_id),
+        )
+        print("next cell and start corner 2 ", (cell_2.cell_id, corner_start_2))
+        if adj_cell_id not in list_cells_ids:
+            intra_path = np.infty
+    print("path length ", intra_path)
+    print("path inner ", length_path_1)
     return intra_path + length_path_1
 
 
@@ -539,11 +549,25 @@ def get_pts_distance(pt_1: tuple, pt_2: tuple):
     return math.sqrt((pt_1[0] - pt_2[0]) ** 2 + (pt_1[1] - pt_2[1]) ** 2)
 
 
+def order_cells_by_sequences_of_ids(cells: List[Cell], seq_ids: List[int]):
+    """Order the cells by the sequence of ids
+    Args:
+        cells (List[Cell]): list of cells
+        seq_ids (List[int]): list of ids of the cells
+    """
+    ordered_cells = []
+    for seq_id in seq_ids:
+        for cell in cells:
+            if cell.cell_id == seq_id:
+                ordered_cells.append(cell)
+    return ordered_cells
+
+
 def shortest_path(
-    adj_matrix: np.array,
     cells: List[Cell],
     cell_sequence: List[int],
     coverage_radius: int,
+    adj_contraint: bool = False,
 ):
     """Solve the shortest path problem using dynamic programming.
 
@@ -560,31 +584,38 @@ def shortest_path(
     # first comes the last workspace
     # 2, 1, 0
     sequence = list(reversed(cell_sequence))
+    ordered_cells = order_cells_by_sequences_of_ids(cells, sequence)
+
     num_corners = 4
     n = len(cell_sequence)
-    dp = np.zeros((len(cell_sequence), num_corners))
-    for i in range(4):
-        path_0i = create_path(
-            cells[cell_sequence[0]], i, coverage_radius=coverage_radius
-        )
-        dp[0, i] = path_length(path_0i)
+    dp = np.zeros((len(sequence), num_corners))
+    # for i in range(4):
+    #     path_0i = create_path(
+    #         ordered_cells[0], i, coverage_radius=coverage_radius
+    #     )
+    #     dp[0, i] = path_length(path_0i)
 
-    for i in range(1, len(cell_sequence)):
+    for i in range(len(cell_sequence) - 1):
+        print("cell id ", ordered_cells[i].cell_id)
         for j in range(num_corners):
             shortest_path = np.infty
             for k in range(num_corners):
                 path_ijk = dist_intra_cells(
-                    adj_matrix,
-                    cells,
+                    ordered_cells[i:],
                     cells[sequence[i]],
-                    cells[sequence[i - 1]],
+                    cells[sequence[i + 1]],
                     j,
                     k,
                     coverage_radius,
+                    adj_contraint=adj_contraint,
                 )
-                dist = path_ijk + dp[i - 1, k]
+                if i > 0:
+                    dist = path_ijk + dp[i - 1, k]
+                else:
+                    dist = path_ijk
                 if dist < shortest_path:
                     shortest_path = dist
+            print(" shortest path ", shortest_path)
             dp[i, j] = shortest_path
 
         if np.allclose(dp[i, :], np.infty):
@@ -598,13 +629,25 @@ def reconstruct_path(
     cell_sequence: List[int],
     coverage_radius: int,
 ):
+    """Reconstruct the path from the dynamic programming solution
+    Args:
+        dp_solution (np.array): dynamic programming solution
+        cells (List[Cell]): list of cells
+        cell_sequence (List[int]): sequence of cells to traverse from the first to the last
+        coverage_radius (int): coverage radius of the path
+
+    Returns:
+        path (List[tuple]): list of coordinates of the path
+    """
     global_path = []
     cell_sequence = list(reversed(cell_sequence))
+    print("recostrucing path in order ", cell_sequence)
+    ordered_cells = order_cells_by_sequences_of_ids(cells, cell_sequence)
     n = len(cell_sequence)
-    for i in range(n - 1, -1, -1):
+    for i in range(n):
         corner_start = np.argmin(dp_solution[i, :])
         path_i = create_path(
-            cells[cell_sequence[i]], corner_start, coverage_radius=coverage_radius
+            ordered_cells[i], corner_start, coverage_radius=coverage_radius
         )
         global_path.append(path_i)
     return global_path

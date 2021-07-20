@@ -220,6 +220,30 @@ class Graph(object):
 
 
 
+def connected_cells(adj_matrix: np.ndarray, cell_1, cell_2) -> bool: 
+    """Check if two cells are connected
+
+    Args:
+        adj_matrix (np.ndarray): adjacency matrix
+        cell_1 (int): first cell
+        cell_2 (int): second cell
+
+    Returns:
+        bool: True if the cells are connected
+    """
+    visited = list()
+    queue = list()
+    queue.append(cell_1)
+    while queue:
+        node = queue.pop(0)
+        if node not in visited:
+            visited.append(node)
+            for neighboor in adj_matrix[node]:
+                if neighboor != cell_1:
+                    queue.append(neighboor)
+    return cell_2 in visited
+
+
 def adj_matrix_to_dict(adj_matrix: np.array) -> Dict[int, List[int]]:
     """Convert adjacency matrix to a dict of lists.
     This is used since the Graph class constructor only takes a list of edges.
