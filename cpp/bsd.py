@@ -353,7 +353,6 @@ def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
             adj = True
     return adj
 
-
 def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int) -> int:
     """Returns the cell id adjent to the corner of the current cell
 
@@ -437,6 +436,7 @@ def dist_intra_cells(
     adj_cell_id = get_adj_cell_to_corner(cells, cell_1.cell_id, corner_end_1)
     
     # if next cell is not given just return the path length
+    # TODO: replace with Dijstra or manhattan distance 
     if cell_2:
         intra_path = get_pts_distance(
             path_1[-1], cell_2.get_corner_coordinates(corner_start_2)

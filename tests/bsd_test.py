@@ -95,35 +95,6 @@ def test_find_connectivity():
     assert np.allclose(graph, expected_graph)
 
 
-# def test_get_adj_corners_next_cell():
-#     """Tests whethere the corners found are the correct ones"""
-#     image = mpimg.imread("data/test/map.jpg")
-#     # original image is black and white anyway
-#     binary_image = image[:, :, 0] > 150
-#     graph_adj_matrix, _ = create_global_adj_matrix(binary_image)
-#     graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
-
-#     graph = Graph(graph_adj_dict)
-#     tree_edges = graph.DFS_tree(0)
-#     graph_tree = Graph()
-#     graph_tree.add_edges(tree_edges, directed=False)
-#     diameter, new_root, furthest_node = graph_tree.find_diameter(0)
-
-#     tree_edges = graph_tree.DFS_tree(new_root)
-#     longest_tree = Graph()
-#     longest_tree.add_edges(tree_edges)
-#     visited = longest_tree.post_order_traversal(new_root)
-#     # visited = [0, 1, 5, 3, 2, 4, 6, 7, 9, 8]
-
-#     # create cells
-#     decomposed_image = create_mask(binary_image)
-#     cells = Cell.from_image(decomposed_image)
-
-#     # find adjent corners
-#     adj_corners_01 = get_adj_corners_next_cell(cells, visited[0], visited[1])
-#     print(adj_corners_01)
-
-
 def test_get_adj_cell_to_corner():
     """Tests whethere the corners found are the correct ones"""
     image = mpimg.imread("data/test/map.jpg")
@@ -239,6 +210,54 @@ def test_directed_global_adj_matrix_convex_obstacles():
     graph_adj_matrix, _ = create_global_adj_matrix(binary_image)
     directed_graph_adj_matrix, _ = get_directed_global_adj_matrix(binary_image)
     assert np.allclose(graph_adj_matrix, directed_graph_adj_matrix)
+
+
+def test_plot_bsd_decomposition():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 150
+    graph_adj_matrix, _ = create_global_adj_matrix(binary_image)
+
+    # create cells
+    decomposed_image = create_mask(binary_image)
+    cells = Cell.from_image(decomposed_image)
+    plot_cells(cells, show=False)
+    plt.imshow(decomposed_image)
+    plt.savefig("data/test/map_decomposed.pdf", dpi=300)
+
+
+def test_plot_bsd_decomposition_concave():
+    image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
+    # original image is black and white anyway
+    graph_adj_matrix, _ = create_global_adj_matrix(image)
+
+    # create cells
+    decomposed_image = create_mask(image)
+    cells = Cell.from_image(decomposed_image)
+    plot_cells(cells, show=False)
+    plt.imshow(decomposed_image)
+    plt.savefig("data/test/map_h_decomposed.pdf", dpi=300)
+
+
+def test_plot_bsd_reduced_image():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 150
+    reduced_image = binary_image[:, :240]
+    plt.imshow(reduced_image)
+    plt.savefig("data/test/reduced_map.pdf", dpi=300)
+
+
+def test_plot_bsd_reduced_decomp():
+    image = mpimg.imread("data/test/map.jpg")
+    # original image is black and white anyway
+    binary_image = image[:, :, 0] > 150
+    reduced_image = binary_image[:, :240]
+    decomposed_image = create_mask(reduced_image)
+    cells = Cell.from_image(decomposed_image)
+    plot_cells(cells, show=False)
+    plt.imshow(reduced_image)
+    plt.savefig("data/test/reduced_decomposed_map.pdf", dpi=300)
 
 
 def test_get_corner_to_adj_cell():
@@ -675,5 +694,5 @@ def test_global_path_concave_obstacles_dijstra_2():
 
 if __name__ == "__main__":
     # test_directed_global_adj_matrix_concave_obstacles()
-    # test_global_path()
-    test_global_path_concave_obstacles_dijstra_2()
+    # test_global_path()test_plot_bsd_reduced_decomp
+    test_plot_bsd_reduced_decomp()
