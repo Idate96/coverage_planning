@@ -45,6 +45,29 @@ def plot_global_path(path: List[List[Tuple[int, int]]], show=True):
     if show:
         plt.show()
 
+def write_path_to_csv(path: List[List[Tuple[int, int, int]]], filename: str):
+    with open(filename, "w") as f:
+        for i in range(len(path)):
+            f.write(str(path[i][0]) + "," + str(path[i][1]) + "," + str(path[i][2]) + "\n")
+
+
+def transform_coordinates(path: List[Tuple[int, int, int]], grid_size: Tuple[float, float], resolution: Tuple[int, int]):
+    """Map the path x and y coordinates from image space to the physical space
+    Args:
+        path: nested list of (x, y, yaw) cooridnates 
+        grid_size: size of the grid in meters
+        resolution: number of pixels in the x and y dimensions
+    Returns:
+        transformed_path: nested list of (x, y, yaw) cooridnates 
+    """
+    transformed_path = []
+    for i in range(len(path)):
+        x = path[i][0] * grid_size[0] / resolution[0]
+        y = path[i][1] * grid_size[1] / resolution[1]
+        yaw = path[i][2]
+        transformed_path.append((x, y, yaw))
+    return transformed_path
+
 
 def generate_H_map(image_size: Tuple[int, int], invert=False) -> np.ndarray:
     """Generate a occupancy map with an obstacle that has the shape of the letter H

@@ -15,7 +15,7 @@ def find_connectivity(slice: np.array):
     Args:
         slice (np.array): array of booleans
     Returns:
-        segments (Tuple[int, int]): start idx and legth of the segment
+        segments (Tuple[int, int]): start idx and end of the segment
     """
     segments = []
     # segments will be identified by their starting idx and legth
@@ -92,7 +92,8 @@ def create_mask(binary_image: np.array):
 
         else:
             current_cells = [0] * num_segments
-            adj_matrix = find_slices_adjacency(previous_segments, current_segments)
+            adj_matrix = find_slices_adjacency(
+                previous_segments, current_segments)
 
             for i in range(num_previous_segments):
                 # simply connected 1 to 1
@@ -116,7 +117,7 @@ def create_mask(binary_image: np.array):
 
         for i in range(len(current_cells)):
             mask[
-                current_segments[i][0] : current_segments[i][1], col_id
+                current_segments[i][0]: current_segments[i][1], col_id
             ] = current_cells[i]
 
         previous_cells = current_cells
@@ -127,6 +128,16 @@ def create_mask(binary_image: np.array):
 
 
 def create_path(cell: Cell, start_corner, coverage_radius: int):
+    """Create a path given the set of segments to cover the space. 
+
+        Args:
+            cell (Cell): cell to be covered
+            start_corner (Tuple[int, int]): corner of the workspace where the path starts
+            coverage_radius (int): radius of the workspace
+
+        Returns:
+            path (np.array): path in SE3 
+        """
     if start_corner == 0 or start_corner == 3:
         vertical_dir = "up"
     else:
@@ -142,17 +153,19 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
     path = []
 
     while not done:
-        y_min = min(cell.bottom[x_current] + coverage_radius, cell.top[x_current])
-        y_max = max(cell.top[x_current] - coverage_radius, cell.bottom[x_current])
+        y_min = min(cell.bottom[x_current] +
+                    coverage_radius, cell.top[x_current])
+        y_max = max(cell.top[x_current] - coverage_radius,
+                    cell.bottom[x_current])
 
         # add vertical component to the path
         if vertical_dir == "down":
-            path.append((x_current, y_max))
-            path.append((x_current, y_min))
+            path.append((x_current, y_max, 0))
+            path.append((x_current, y_min, 0))
             vertical_dir = "up"
         else:
-            path.append((x_current, y_min))
-            path.append((x_current, y_max))
+            path.append((x_current, y_min, np.pi))
+            path.append((x_current, y_max, np.pi))
             vertical_dir = "down"
 
         # check if another segment fit in the cell
@@ -166,10 +179,12 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
                 if vertical_dir == "down":
                     # print("options ", cell.top[x] - coverage_radius, cell.bottom[x])
                     y = max(cell.top[x] - coverage_radius, cell.bottom[x])
+                    yaw = 0
                 else:
                     # print("bottom options ")
                     y = min(cell.bottom[x] + coverage_radius, cell.top[x])
-                path.append((x, y))
+                    yaw = np.pi
+                path.append((x, y, yaw))
 
         else:
             done = True
@@ -194,7 +209,8 @@ def path_length(path: List[Tuple[int, int]]) -> int:
     length = 0
     for i in range(len(path) - 1):
         length += np.sqrt(
-            (path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2
+            (path[i][0] - path[i + 1][0]) ** 2 +
+            (path[i][1] - path[i + 1][1]) ** 2
         )
     return length
 
@@ -298,7 +314,8 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
         for i in range(len(previous_segments)):
             for j in range(len(current_segments)):
                 if adj_matrix[i, j]:
-                    idx_i = decomposed_image[previous_segments[i][0], col_id - 1]
+                    idx_i = decomposed_image[previous_segments[i]
+                                             [0], col_id - 1]
                     idx_j = decomposed_image[current_segments[j][0], col_id]
                     if idx_i != idx_j:
                         graph[idx_i, idx_j] = 1
@@ -313,17 +330,16 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
 
 def get_directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
     """Creates a directed graph representing the global connectivity of the workspace cells
-    
+
     Args:
         binary_image (np.ndarray): images or 0 and 1, encoding areas belonging
-    
+
     Returns:
         graph: directed graph of the cells connectivity
-    
+
     """
     decomposed_image = create_mask(binary_image)
     cells = Cell.from_image(decomposed_image)
-    
 
     directed_adj_matrix = np.zeros((len(cells), len(cells)))
     # cells only connects through corners, as those are the end points of the motion primitives
@@ -333,24 +349,25 @@ def get_directed_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
             adj_cell_id = get_adj_cell_to_corner(cells, cell.cell_id, corner)
             if adj_cell_id is not None:
                 directed_adj_matrix[cell.cell_id, adj_cell_id] = 1
-    
+
     return directed_adj_matrix, decomposed_image
 
 
 def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
     """Check if first cell is connected to second cell via a corner
-    
+
     Args:
         cell_1 (Cell): cell 1
         cell_2 (Cell): cell 2
-    
+
     Returns:
         adj: True if cell 1 is connected to cell 2 via a corner
-    
+
     """
     adj = False
     for corner in range(4):
-        adj_cell_id = get_adj_cell_to_corner([cell_1, cell_2], cell_1.cell_id, corner)
+        adj_cell_id = get_adj_cell_to_corner(
+            [cell_1, cell_2], cell_1.cell_id, corner)
         if adj_cell_id is not None:
             adj = True
     return adj
@@ -441,7 +458,7 @@ def corner_adjencency(cell_1: Cell, cell_2: Cell) -> bool:
 
 
 def get_adj_cell_to_corner(cells: List[Cell], cell_id: int, corner_id: int
-) -> int:
+                           ) -> int:
     """Returns the cell id adjent to the corner of the current cell
 
     Args:
@@ -518,7 +535,8 @@ def dist_intra_cells(
 ):
     """Compute the distance between two points located in two adjancent cells"""
 
-    path_1 = create_path(cell_1, corner_start_1, coverage_radius=coverage_radius)
+    path_1 = create_path(cell_1, corner_start_1,
+                         coverage_radius=coverage_radius)
     length_path_1 = path_length(path_1)
     corner_end_1 = get_path_end_corner(path_1, corner_start_1)
     adj_cell_id = get_adj_cell_to_corner(

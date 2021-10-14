@@ -7,6 +7,8 @@ import matplotlib.image as mpimg
 from cpp.helpers import *
 
 # tests for connectivy
+
+
 def test_fully_connected():
     slice = np.ones((10, 1))
     segments = find_connectivity(slice)
@@ -212,7 +214,8 @@ def test_directed_global_adj_matrix_concave_obstacles():
 
     # original image is black and white anyway
     graph_adj_matrix, decomposed_image = create_global_adj_matrix(image)
-    directed_global_adj_matrix, decomposed_image = get_directed_global_adj_matrix(image)
+    directed_global_adj_matrix, decomposed_image = get_directed_global_adj_matrix(
+        image)
     cells = Cell.from_image(decomposed_image)
 
     assert np.isclose(graph_adj_matrix[0, 1], directed_global_adj_matrix[0, 1])
@@ -224,8 +227,10 @@ def test_directed_global_adj_matrix_concave_obstacles():
     assert np.isclose(graph_adj_matrix[3, 4], directed_global_adj_matrix[3, 4])
     assert np.isclose(graph_adj_matrix[4, 3], directed_global_adj_matrix[4, 3])
     assert np.isclose(graph_adj_matrix[4, 5], directed_global_adj_matrix[4, 5])
-    assert not np.isclose(graph_adj_matrix[5, 4], directed_global_adj_matrix[5, 4])
-    assert not np.isclose(graph_adj_matrix[0, 2], directed_global_adj_matrix[0, 2])
+    assert not np.isclose(
+        graph_adj_matrix[5, 4], directed_global_adj_matrix[5, 4])
+    assert not np.isclose(
+        graph_adj_matrix[0, 2], directed_global_adj_matrix[0, 2])
     assert np.isclose(graph_adj_matrix[2, 0], directed_global_adj_matrix[2, 0])
 
     plot_cells(cells)
@@ -421,7 +426,7 @@ def test_global_path():
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 150
-    graph_adj_matrix, _= create_global_adj_matrix(binary_image)
+    graph_adj_matrix, _ = create_global_adj_matrix(binary_image)
     graph_adj_dict = adj_matrix_to_dict(graph_adj_matrix)
 
     graph = Graph(graph_adj_dict)
@@ -444,14 +449,18 @@ def test_global_path():
     visited_simple = [1, 0, 2]
     path_0 = create_path(cells[1], 0, coverage_radius=10)
 
-
     # shortest path
     dp = shortest_path(
         graph_adj_matrix, cells=cells, cell_sequence=visited, coverage_radius=10
     )
     path = reconstruct_path(dp, cells, visited, coverage_radius=10)
     plot_cells(cells, show=False)
-    plot_global_path(path, show=False)
+    # remove last element of the tuple for each element in the segments that make up the path
+    simple_path = []
+    for cell_path in path:
+        simple_path.append([p[:-1] for p in cell_path])
+
+    plot_global_path(simple_path, show=False)
     plt.imshow(image)
     plt.savefig("logs/images/test_path.png")
 
@@ -483,14 +492,23 @@ def test_small_global_path():
     visited_simple = [1, 0, 2]
     path_0 = create_path(cells[1], 0, coverage_radius=10)
 
-
     # shortest path
     dp = shortest_path(
         graph_adj_matrix, cells=cells, cell_sequence=visited_simple, coverage_radius=10
     )
     path = reconstruct_path(dp, cells, visited_simple, coverage_radius=10)
     plot_cells(cells, show=False)
-    plot_global_path(path, show=False)
+    simple_path = []
+    for cell_path in path:
+        simple_path.append([p[:-1] for p in cell_path])
+    plot_global_path(simple_path, show=False)
+    # remove nested lists and flatten the path
+    flattened_path = [item for sublist in path for item in sublist]
+    grid_size = [30, 30]
+    resolution = np.shape(image)
+    path_in_world = transform_coordinates(
+        flattened_path, grid_size, resolution)
+    write_path_to_csv(path_in_world, "logs/images/test_path.csv")
     plt.imshow(image)
     plt.savefig("logs/images/test_path.png")
 
@@ -526,4 +544,4 @@ def test_plotter():
 
 if __name__ == "__main__":
     # test_directed_global_adj_matrix_concave_obstacles()
-    test_find_connectivity()
+    test_global_path()
