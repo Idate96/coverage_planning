@@ -8,23 +8,26 @@ import matplotlib.image as mping
 import math
 
 
-def find_connectivity(slice: np.array):
+def find_connectivity(slice: np.array, traversable_outside=False):
     """Find the connectivity of a boolean slice.
     The slice contains 1 and 0s to indicate wether the point belongs to the workspace
 
     Args:
         slice (np.array): array of booleans
+        traversable_outside (bool): if False, the region to be segmented is sorrounded by an untraversable region
     Returns:
-        segments (Tuple[int, int]): start idx and legth of the segment
+        segments (Tuple[int, int]): start idx and length of the segment
     """
     segments = []
-    # segments will be identified by their starting idx and legth
+    # segments will be identified by their starting idx and length
     start_segment_idx = 0
-    outside_of_workspace = False
+    outside_of_workspace = not traversable_outside
     for i in range(len(slice)):
+        # current cell ends
         if slice[i] == 0 and not outside_of_workspace:
-            segments.append((start_segment_idx, len(slice[:i])))
+            segments.append((start_segment_idx, i))
             outside_of_workspace = True
+        # another cell starts
         if slice[i] == 1 and outside_of_workspace:
             start_segment_idx = i
             outside_of_workspace = False
@@ -33,7 +36,29 @@ def find_connectivity(slice: np.array):
     if not outside_of_workspace:
         segments.append((start_segment_idx, len(slice)))
 
-    return segments
+    # make it more robust to imperfect segmentation
+    merged_segments = []
+    if len(segments) > 1:
+        current_start_idx = segments[0][0]
+        current_end_idx = segments[0][1]
+
+        for (start_idx, end_idx) in segments[1:]:
+            # merge segments that are separated by less than 10 pixels
+            if start_idx - current_end_idx < 20:
+                current_end_idx = end_idx
+                # edge case
+                # if end_idx == segments[-1][1]:
+                #     merged_segments.append((current_start_idx, current_end_idx))
+            else:
+                merged_segments.append((current_start_idx, current_end_idx))
+                current_start_idx = start_idx
+                current_end_idx = end_idx
+
+        merged_segments.append((current_start_idx, current_end_idx))
+    else:
+        merged_segments = segments
+
+    return merged_segments
 
 
 def find_slices_adjacency(
@@ -60,11 +85,12 @@ def find_slices_adjacency(
     return adj_matrix
 
 
-def create_mask(binary_image: np.array):
+def create_mask(binary_image: np.array, traversable_outside: bool):
     """Create a mask that assigns a label, representing the cell id, to each point in the workspace.
 
     Args:
         binary_images (np.array): array that encodes the workspace
+        traversable_outside (bool): if False, the region to be segmented is sorrounded by an untraversable region
 
     Returns:
         mask (np.array): array containing the labels for each pt
@@ -79,8 +105,9 @@ def create_mask(binary_image: np.array):
 
     for col_id in range(binary_image.shape[1]):
         slice = binary_image[:, col_id]
-        current_segments = find_connectivity(slice)
+        current_segments = find_connectivity(slice, traversable_outside)
         num_segments = len(current_segments)
+
 
         # at
         if num_previous_segments == 0:
@@ -115,9 +142,9 @@ def create_mask(binary_image: np.array):
                     num_cells += 1
 
         for i in range(len(current_cells)):
-            mask[
-                current_segments[i][0] : current_segments[i][1], col_id
-            ] = current_cells[i]
+            # to make ti robust against artifact in the mask
+            # only allow segments biggen than 10
+            mask[current_segments[i][0]:current_segments[i][1], col_id] = current_cells[i]
 
         previous_cells = current_cells
         previous_segments = current_segments
@@ -136,8 +163,17 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
         horizontal_dir = "right"
     else:
         horizontal_dir = "left"
+
     # This depends on the starting point
-    x_current = min(cell.x_left + coverage_radius, cell.x_right)
+    if horizontal_dir == "right":
+        x_current = cell.x_left + coverage_radius
+        x_end = cell.x_right - coverage_radius
+        step = 2*coverage_radius
+    else:
+        x_current = cell.x_right - coverage_radius
+        x_end = cell.x_left + coverage_radius
+        step = -2*coverage_radius
+    # x_current = min(cell.x_left + coverage_radius, cell.x_right - coverage_radius)
     done = False
     path = []
 
@@ -156,10 +192,13 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
             vertical_dir = "down"
 
         # check if another segment fit in the cell
+
         # TODO: this depends on the order too
         # TODO: allow for float
-        if x_current + coverage_radius < cell.x_right:
-            x_next = min(x_current + 2 * coverage_radius, cell.x_right)
+        x_next = x_current + step
+        print("cell boundaries ", cell.x_left, cell.x_right)
+        print("current x ", x_current, step)
+        if cell.x_right > x_next > cell.x_left:
             # here we assume that x lies in the cells
             for x in range(x_current, x_next):
                 # check if we are the top or bottom
@@ -168,14 +207,13 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
                 else:
                     y = min(cell.bottom[x] + coverage_radius, cell.top[x])
                 path.append((x, y))
-
+            x_current = x_next
         else:
             done = True
-        x_current = x_next
 
     # flip the order if the cell had to be covered in the opposite direction
-    if horizontal_dir == "left":
-        path.reverse()
+    # if horizontal_dir == "left":
+    #     path.reverse()
 
     return path
 
@@ -272,7 +310,7 @@ def get_path_end_corner(path: List[Tuple[int, int]], corner_start: int) -> int:
 
 
 
-def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
+def create_global_adj_matrix(binary_image: np.ndarray, traversable_outside: bool) -> np.ndarray:
     """Creates a graph representing the global connectivity of the workspace cells
 
     Args:
@@ -283,7 +321,7 @@ def create_global_adj_matrix(binary_image: np.ndarray) -> np.ndarray:
         graph: graph of the cells connectivity
     """
 
-    decomposed_image = create_mask(binary_image)
+    decomposed_image = create_mask(binary_image, traversable_outside=traversable_outside)
     num_cells = np.max(decomposed_image)
     graph = np.zeros((num_cells + 1, num_cells + 1))
     previous_segments = []
@@ -528,8 +566,12 @@ def shortest_path(
 
         if np.allclose(dp[i, :], np.infty):
             raise AssertionError("No path found")
-    # boundary condition 
-    dp[-1, next_corner_idx] = min(dp[-2, :]) + path_length(create_path(ordered_cells[-1], next_corner_idx, coverage_radius=10))
+
+    if np.shape(dp)[0] > 1:
+        # boundary condition
+        dp[-1, next_corner_idx] = min(dp[-2, :]) + path_length(create_path(ordered_cells[-1], next_corner_idx, coverage_radius=10))
+    else:
+        dp[-1, next_corner_idx] = path_length(create_path(ordered_cells[-1], next_corner_idx, coverage_radius=10))
     return dp
 
 
@@ -561,3 +603,19 @@ def reconstruct_path(
         )
         global_path.append(path_i)
     return global_path
+
+def save_path(path: List[tuple], filename: str):
+    """Save the path in a csv file
+    Args:
+        path (List[tuple]): list of coordinates of the path
+        filename (str): name of the file
+    """
+    # convert to numpy array
+    path_flattened = []
+    for cell_path in path:
+        for coordinates in cell_path:
+            # convert tuple to np array
+            path_flattened.append(coordinates)
+    path_np = np.array(path_flattened)
+    # save to csv
+    np.save(filename, path_np)

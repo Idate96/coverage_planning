@@ -689,10 +689,18 @@ def test_global_path_concave_obstacles_dijstra_2():
     plot_cells(cells, show=False, fontsize=1)
     plot_global_path(path, show=False, markersize=5)
     plt.imshow(binary_image)
+    plt.show()
     plt.savefig("data/test/test_concave_obs_path_dijstra_2_.pdf", dpi=300)
+
+def test_save_path():
+    path = [(0, 1), (2, 1), (2, 3)]
+    save_path(path, "data/test/test_path.csv")
+
+def test_load_path():
+    path = np.loadtxt("data/test/test_path_fmt.csv", delimiter=',')
 
 
 if __name__ == "__main__":
-    # test_directed_global_adj_matrix_concave_obstacles()
+    test_load_path()
     # test_global_path()test_plot_bsd_reduced_decomp
-    test_plot_bsd_reduced_decomp()
+    # test_plot_bsd_reduced_decomp()

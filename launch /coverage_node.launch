@@ -1,0 +1,4 @@
+<launch>
+    <param name="path_name" value="$(find coverage_planning)/data/path.npy"/>
+    <node pkg="coverage_planning" type="coverage_ros.py" name="coverage_node" output="screen"/>\
+</launch>

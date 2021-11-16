@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>coverage_planning</name>
+  <version>0.0.0</version>
+  <maintainer email="lorenzoterenzi96@gmail.com">lorenzo</maintainer>
+
+  <description>The global path package</description>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+</package>

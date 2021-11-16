@@ -112,6 +112,7 @@ class Cell(object):
         ) // 2
 
 
+
 def get_distance_between_cells(
     adj_matrix: Dict[int, List[int]], cells: List[Cell]
 ) -> Dict[int, Dict[int, int]]:
@@ -202,3 +203,8 @@ def filter_cells(cell: Cell, cells: List[Cell], side: str) -> List[Cell]:
     else:
         raise ValueError("side should be either left or right")
     return filtered_list
+
+
+def num_path_turns(cell: Cell, coverage_radius: int) -> int:
+    # get the number of turns in the path by diving the cell width by the coverage diameter
+    return int(cell.x_right - cell.x_left) // (coverage_radius * 2)
