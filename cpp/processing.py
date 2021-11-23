@@ -1,12 +1,21 @@
 import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-import bsd
-from cells import plot_cells, num_path_turns
+import cpp.bsd as bsd
+from cpp.cells import plot_cells, num_path_turns
 import cv2
-import dfs_tree
+import cpp.dfs_tree as dfs_tree
 import scipy.optimize
-import helpers
+import cpp.helpers as helpers
+
+
+def rotate_pts(se2_pts, angle):
+    image_center = tuple(np.array(image.shape[1::-1]) / 2)
+    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+    se2_pts[:, :2] = rot_mat @ se2_pts[:, :2]
+    # rotate the heading
+    se2_pts[:, 2] += angle
+    return path
 
 
 def rotate(image: np.ndarray, angle):
@@ -59,7 +68,7 @@ def find_num_turns(binary_image, rotation_angle):
     new_binary_image, mask = post_process_mask(binary_image, decomposed_image)
     _, new_mask = bsd.create_global_adj_matrix(new_binary_image, traversable_outside=False)
     cells = bsd.Cell.from_image(new_mask)
-    print([cell.cell_id for cell in cells])
+    # print([cell.cell_id for cell in cells])
     num_turns = 0
     for cell in cells:
         num_turns += num_path_turns(cell, coverage_radius=20)
@@ -77,22 +86,77 @@ def find_best_map_orientation(binary_image):
     return angle
 
 
-def transform_path(path: np.ndarray, translation, rotation, resolution):
+def path_to_image_frame(path: np.ndarray, rotation_angle,  resolution):
+    path_np = path[:, :2]
+    yaw_np = path[:, 2]
+    image_center = np.array(image.shape[1::-1], dtype=float) / 2
+    rot_mat = cv2.getRotationMatrix2D(tuple(image_center), rotation_angle, 1.0)
+    # rotate the heading
+    path_np = path_np - image_center
+    yaw_np += rotation_angle/180*np.pi
+    # path_np = np.concatenate((path_np, np.ones((path_np.shape[0], 1))), axis=1)
+    pixel_frame_path = rot_mat[:2, :2] @ path_np.T + image_center[:, np.newaxis]
+    pixel_frame_path = pixel_frame_path * resolution  # pixels to meters
+    return np.hstack((pixel_frame_path.T, yaw_np[:, np.newaxis]))
+
+
+def image_to_map_frame(pixel_path, m_P_mp):
     """
-    Scale, translate and rotate the path from image space to map frame.
+    Convert a path in pixel frame to map frame.
     """
-    path *= resolution  # pixels to meters
-    path += translation
-    map_frame_path = rotation @ path
-    return map_frame_path
+    path_np = pixel_path[:, :2].T
+    yaw_np = pixel_path[:, 2]
+    # Rotate 90 degrees clockwise
+    R_mp = -np.array([[0, 1], [-1, 0]])
+    map_frame_path = R_mp @ path_np
+    yaw_np += np.pi/2
+    # translate to map frame
+    map_frame_path[1, :] = -map_frame_path[1, :]
+    map_frame_path = map_frame_path + m_P_mp[:, np.newaxis]
+    # flip y axis
+    yaw_np = yaw_np % (2 * np.pi)
+
+    path_output = np.hstack((map_frame_path[:2, :].T, yaw_np[:, np.newaxis]))
+    return path_output
+
+
+def path_list_to_np(path_list):
+    path_flatten = [item for sublist in path_list for item in sublist]
+    return np.array(path_flatten)
+
+
+def path_np_to_list(path_np, path_list):
+    """
+    Convert a path in numpy array format to a list of tuples
+    """
+    path_list_new = []
+    idx = 0
+    for i in range(len(path_list)):
+        cell_path_new = []
+        for j in range(len(path_list[i])):
+            # convert tuple to np array
+            cell_path_new.append((path_np[idx, 0], path_np[idx, 1], path_np[idx, 2]))
+            idx += 1
+        path_list_new.append(cell_path_new)
+    return path_list_new
+
+
+def reverse_path_order(path_np):
+    """
+    Reverse the order of the path
+    """
+    path_np_new = np.zeros_like(path_np)
+    for i in range(len(path_np)):
+        path_np_new[i, :] = path_np[len(path_np) - i - 1, :]
+    return path_np_new
 
 
 if __name__ == '__main__':
-    image = mpimg.imread("data/occupancy.png")
+    image = mpimg.imread("data/occupancy_or.png")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 0.99
-
-    binary_image = rotate(binary_image, 0)
+    angle = 198
+    binary_image = rotate(binary_image, angle)
     binary_image = binary_image == 1
     #
     graph_adj_matrix, decomposed_image = bsd.create_global_adj_matrix(binary_image, traversable_outside=False)
@@ -100,7 +164,7 @@ if __name__ == '__main__':
     new_binary_image, mask = post_process_mask(binary_image, decomposed_image)
     graph_adj_matrix, new_mask = bsd.create_global_adj_matrix(new_binary_image, traversable_outside=False)
     cells = bsd.Cell.from_image(new_mask)
-    print([cell.cell_id for cell in cells])
+    # print([cell.cell_id for cell in cells])
     num_turns = 0
     for cell in cells:
         num_turns += num_path_turns(cell, coverage_radius=20)
@@ -127,12 +191,21 @@ if __name__ == '__main__':
 
     # shortest path
     dp = bsd.shortest_path(
-        cells=cells, cell_sequence=visited, coverage_radius=10, adj_contraint=False
+       cells=cells, cell_sequence=visited, coverage_radius=40, adj_contraint=False
     )
-    path = bsd.reconstruct_path(dp, cells, visited, coverage_radius=10)
-    print(path)
-    plot_cells(cells, show=False)
-    helpers.plot_global_path(path, show=False)
-    plt.imshow(image)
-    plt.show()
+    path = bsd.reconstruct_path(dp, cells, visited, coverage_radius=40)
+    path_np = path_list_to_np(path)
+
+    path_in_image_frame = path_to_image_frame(path_np, rotation_angle=-angle, resolution=0.1)
+    path_in_map_frame = image_to_map_frame(path_in_image_frame, np.array([11.17, 54.11]))
+    reversed_path_map_frame = reverse_path_order(path_in_map_frame)
+    path_map_list = path_np_to_list(path_in_map_frame, path)
+    # helpers.save_path(path_map, "data/path")
+    np.save("data/path.npy", reversed_path_map_frame)
+    # plot_cells(cells, show=False)
+    # helpers.plot_global_path(path, show=True)
+    # helpers.plot_global_path(path_map_list, show=False)
+
+    # plt.imshow(image)
+    # plt.show()
     # # rotate image

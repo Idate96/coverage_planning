@@ -177,44 +177,69 @@ def create_path(cell: Cell, start_corner, coverage_radius: int):
     done = False
     path = []
 
-    while not done:
+    while cell.x_right > x_current > cell.x_left:
         y_min = min(cell.bottom[x_current] + coverage_radius, cell.top[x_current])
         y_max = max(cell.top[x_current] - coverage_radius, cell.bottom[x_current])
 
-        # add vertical component to the path
         if vertical_dir == "down":
-            path.append((x_current, y_max))
-            path.append((x_current, y_min))
+            # linearly interpolate between y_min and y_max with spacing equal to the coverage ratio
+            # heading will be trasformed from the path frame to the map frame
+            for y_current in range(y_max, y_min, -step):
+                path.append((x_current, y_current, np.pi/2))
+            # path.append((x_current, y_max, np.pi/2))
+            path.append((x_current, y_min, np.pi/2))
             vertical_dir = "up"
         else:
-            path.append((x_current, y_min))
-            path.append((x_current, y_max))
+            for y_current in range(y_min, y_max, step):
+                path.append((x_current, y_current, 3/2*np.pi))
+            path.append((x_current, y_max, 3/2 * np.pi))
             vertical_dir = "down"
 
-        # check if another segment fit in the cell
+        x_current += step
 
-        # TODO: this depends on the order too
-        # TODO: allow for float
-        x_next = x_current + step
-        print("cell boundaries ", cell.x_left, cell.x_right)
-        print("current x ", x_current, step)
-        if cell.x_right > x_next > cell.x_left:
-            # here we assume that x lies in the cells
-            for x in range(x_current, x_next):
-                # check if we are the top or bottom
-                if vertical_dir == "down":
-                    y = max(cell.top[x] - coverage_radius, cell.bottom[x])
-                else:
-                    y = min(cell.bottom[x] + coverage_radius, cell.top[x])
-                path.append((x, y))
-            x_current = x_next
-        else:
-            done = True
+
+
+
+    # while not done:
+    #     y_min = min(cell.bottom[x_current] + coverage_radius, cell.top[x_current])
+    #     y_max = max(cell.top[x_current] - coverage_radius, cell.bottom[x_current])
+    #
+    #     # add vertical component to the path
+    #     # the pose of the robot is in SE2
+    #     if vertical_dir == "down":
+    #         # linearly interpolate between y_min and y_max with spacing equal to the coverage ratio
+    #         # heading will be trasformed from the path frame to the map frame
+    #         path.append((x_current, y_max, np.pi/2))
+    #         path.append((x_current, y_min, np.pi/2))
+    #         vertical_dir = "up"
+    #     else:
+    #         path.append((x_current, y_min, 3/2 * np.pi))
+    #         path.append((x_current, y_max, 3/2 * np.pi))
+    #         vertical_dir = "down"
+    #     x_current += step
+    #
+    #     # TODO: this depends on the order too
+    #     # TODO: allow for float
+    #     # TODO: to allow for different orientation depending on the cells
+    #     # the cell representation should be invariant under rotation
+    #     x_next = x_current + step
+    #     if cell.x_right > x_next > cell.x_left:
+    #         # here we assume that x lies in the cells
+    #         for x in range(x_current, x_next):
+    #             # check if we are the top or bottom
+    #             if vertical_dir == "down":
+    #                 y = max(cell.top[x] - coverage_radius, cell.bottom[x])
+    #             else:
+    #                 y = min(cell.bottom[x] + coverage_radius, cell.top[x])
+    #             path.append((x, y))
+    #         x_current = x_next
+    #     else:
+    #         done = True
 
     # flip the order if the cell had to be covered in the opposite direction
     # if horizontal_dir == "left":
     #     path.reverse()
-
+    print("PATH  : ",  path)
     return path
 
 
@@ -604,18 +629,3 @@ def reconstruct_path(
         global_path.append(path_i)
     return global_path
 
-def save_path(path: List[tuple], filename: str):
-    """Save the path in a csv file
-    Args:
-        path (List[tuple]): list of coordinates of the path
-        filename (str): name of the file
-    """
-    # convert to numpy array
-    path_flattened = []
-    for cell_path in path:
-        for coordinates in cell_path:
-            # convert tuple to np array
-            path_flattened.append(coordinates)
-    path_np = np.array(path_flattened)
-    # save to csv
-    np.save(filename, path_np)

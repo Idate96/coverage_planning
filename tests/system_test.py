@@ -39,6 +39,7 @@ def test_plotter():
 
     plt.savefig("logs/images/image_decomposed.jpg")
 
+
 def test_global_path():
     image = mpimg.imread("data/occupancy.png")
     # original image is black and white anyway
@@ -71,6 +72,7 @@ def test_global_path():
     plt.imshow(image)
     plt.show()
     plt.savefig("logs/occupancy_path.png")
+
 
 if __name__ == "__main__":
     test_global_path()

@@ -19,17 +19,19 @@ def plot_path(path: List[Tuple[int, int]], show=False, markersize=10):
     plt.plot(path[-1][0], path[-1][1], "x", markersize=markersize)
 
     # plot whole path
-    x, y = zip(*path)
+    x, y, yaw = zip(*path)
     plt.gca().invert_yaxis()
     plt.plot(x, y)
 
     if show:
         plt.show()
 
+
 def distance_pts(pt1: Tuple[int, int], pt2: Tuple[int, int]) -> float:
     """Calculate the distance between two points
     """
     return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
+
 
 def plot_global_path(path: List[List[Tuple[int, int]]], show=True, markersize=10):
     # store segments across cells
@@ -43,7 +45,7 @@ def plot_global_path(path: List[List[Tuple[int, int]]], show=True, markersize=10
         intersection_segments.append([path[i][-1], path[i + 1][0]])
 
     for segment in intersection_segments:
-        x, y = zip(*segment)
+        x, y, yaw = zip(*segment)
         plt.gca().invert_yaxis()
         plt.plot(x, y, "--", markersize=markersize)
     if show:
@@ -134,6 +136,23 @@ def recurvise_H_map(
         )
 
     return np.rot90(H_map)
+
+
+def save_path(path: List[tuple], filename: str):
+    """Save the path in a csv file
+    Args:
+        path (List[tuple]): list of coordinates of the path
+        filename (str): name of the file
+    """
+    # convert to numpy array
+    path_flattened = []
+    for cell_path in path:
+        for coordinates in cell_path:
+            # convert tuple to np array
+            path_flattened.append(coordinates)
+    path_np = np.array(path_flattened)
+    # save to csv
+    np.save(filename, path_np)
 
 
 if __name__ == "__main__":
