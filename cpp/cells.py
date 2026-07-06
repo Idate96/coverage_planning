@@ -109,7 +109,7 @@ class Cell(object):
         ) // 2
 
 
-def plot_cells(list_cells: List[Cell], show=False):
+def plot_cells(list_cells: List[Cell], show=False, verbose=False):
     """Plot the different identified cells
 
     Args:
@@ -120,7 +120,8 @@ def plot_cells(list_cells: List[Cell], show=False):
 
     for cell in list_cells:
         # plot side boundaries
-        print("Boundaries : [%d, %d]" % (cell.x_left, cell.x_right))
+        if verbose:
+            print("Boundaries : [%d, %d]" % (cell.x_left, cell.x_right))
         plt.plot(
             cell.x_left * np.ones(len(cell.left)),
             cell.left,

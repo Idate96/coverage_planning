@@ -1,22 +1,13 @@
-#!/usr/bin/env python3.7
+import pytest
 
-# Copyright 2021, Gurobi Optimization, LLC
-
-# This example formulates and solves the following simple MIP model:
-#  maximize
-#        x +   y + 2 z
-#  subject to
-#        x + 2 y + 3 z <= 4
-#        x +   y       >= 1
-#        x, y, z binary
-
-import gurobipy as gp
+gp = pytest.importorskip("gurobipy", reason="Gurobi is optional for core tests")
 from gurobipy import GRB
 
-try:
 
+def test_gurobi_mip_smoke():
     # Create a new model
     m = gp.Model("mip1")
+    m.setParam("OutputFlag", 0)
 
     # Create variables
     x = m.addVar(vtype=GRB.BINARY, name="x")
@@ -35,13 +26,5 @@ try:
     # Optimize model
     m.optimize()
 
-    for v in m.getVars():
-        print('%s %g' % (v.varName, v.x))
-
-    print('Obj: %g' % m.objVal)
-
-except gp.GurobiError as e:
-    print('Error code ' + str(e.errno) + ': ' + str(e))
-
-except AttributeError:
-    print('Encountered an attribute error')
+    assert m.Status == GRB.OPTIMAL
+    assert m.objVal == pytest.approx(2.0)

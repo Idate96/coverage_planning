@@ -13,13 +13,14 @@ def plot_decomposed_image(image, show=True):
 
 
 def plot_path(path: List[Tuple[int, int]], show=False):
+    coords = [(point[0], point[1]) for point in path]
     # plot start pt
-    plt.plot(path[0][0], path[0][1], "o")
+    plt.plot(coords[0][0], coords[0][1], "o")
     # ploe end pt
-    plt.plot(path[-1][0], path[-1][1], "x")
+    plt.plot(coords[-1][0], coords[-1][1], "x")
 
     # plot whole path
-    x, y = zip(*path)
+    x, y = zip(*coords)
     plt.gca().invert_yaxis()
     plt.plot(x, y)
 
@@ -39,7 +40,8 @@ def plot_global_path(path: List[List[Tuple[int, int]]], show=True):
         intersection_segments.append([path[i][-1], path[i + 1][0]])
 
     for segment in intersection_segments:
-        x, y = zip(*segment)
+        x = [point[0] for point in segment]
+        y = [point[1] for point in segment]
         plt.gca().invert_yaxis()
         plt.plot(x, y, "--")
     if show:
@@ -103,7 +105,7 @@ def generate_H_map(image_size: Tuple[int, int], invert=False) -> np.ndarray:
 
 
 def recurvise_H_map(
-    image_size: Tuple[int, int], invert=False, num_recursions=np.infty
+    image_size: Tuple[int, int], invert=False, num_recursions=np.inf
 ) -> np.ndarray:
     """Generate a recursive occupancy map with an obstacle that has the shape of the letter H.
     in each of the holes of the letter H, other letter Hs are embedded until the thickness of the letter reaches 1.

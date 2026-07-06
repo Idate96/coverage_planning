@@ -1,5 +1,3 @@
-from numpy.core.numeric import binary_repr
-from numpy.lib.function_base import cov
 from cpp.cells import Cell, filter_cells
 from typing import List, Tuple
 import numpy as np
@@ -547,7 +545,7 @@ def dist_intra_cells(
             path_1[-1], cell_2.get_corner_coordinates(corner_start_2)
         )
     else:
-        intra_path = np.infty
+        intra_path = np.inf
 
     return intra_path + length_path_1
 
@@ -589,7 +587,7 @@ def shortest_path(
 
     for i in range(1, len(cell_sequence)):
         for j in range(num_corners):
-            shortest_path = np.infty
+            shortest_path = np.inf
             for k in range(num_corners):
                 path_ijk = dist_intra_cells(
                     adj_matrix,
@@ -605,7 +603,7 @@ def shortest_path(
                     shortest_path = dist
             dp[i, j] = shortest_path
 
-        if np.allclose(dp[i, :], np.infty):
+        if np.allclose(dp[i, :], np.inf):
             raise AssertionError("No path found")
     return dp
 

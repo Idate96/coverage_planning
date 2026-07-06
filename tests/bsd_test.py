@@ -195,7 +195,7 @@ def test_corner_adjencency_H_shape():
     binary_image = generate_H_map((400, 600), invert=True)
     decomposed_image = create_mask(binary_image)
     cells = Cell.from_image(decomposed_image)
-    plot_decomposed_image(decomposed_image)
+    plot_decomposed_image(decomposed_image, show=False)
     plot_cells(cells, show=False)
 
     corner_adj_01 = corner_adjencency(cells[0], cells[1])
@@ -377,7 +377,7 @@ def test_distance_intra_cells():
             )
         )
 
-    expected_dist_0_1 = [np.infty, 1424.05, np.infty, np.infty]
+    expected_dist_0_1 = [np.inf, 1424.05, np.inf, np.inf]
     assert np.allclose(expected_dist_0_1, dist_0_1)
 
     dist_1_0 = []
@@ -387,7 +387,7 @@ def test_distance_intra_cells():
                 adj_matrix, cells, cells[1], cells[0], corner_id, 0, coverage_radius=10
             )
         )
-    expected_dist_1_0 = [np.infty, np.infty, 842.307, 791.809]
+    expected_dist_1_0 = [np.inf, np.inf, 842.307, 791.809]
     assert np.allclose(expected_dist_1_0, dist_1_0)
 
 
@@ -422,7 +422,7 @@ def test_shortest_path():
     )
 
 
-def test_global_path():
+def test_global_path(tmp_path):
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 150
@@ -462,10 +462,11 @@ def test_global_path():
 
     plot_global_path(simple_path, show=False)
     plt.imshow(image)
-    plt.savefig("logs/images/test_path.png")
+    plt.savefig(tmp_path / "test_path.png")
+    plt.close()
 
 
-def test_small_global_path():
+def test_small_global_path(tmp_path):
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 150
@@ -508,12 +509,13 @@ def test_small_global_path():
     resolution = np.shape(image)
     path_in_world = transform_coordinates(
         flattened_path, grid_size, resolution)
-    write_path_to_csv(path_in_world, "logs/images/test_path.csv")
+    write_path_to_csv(path_in_world, tmp_path / "test_path.csv")
     plt.imshow(image)
-    plt.savefig("logs/images/test_path.png")
+    plt.savefig(tmp_path / "test_path.png")
+    plt.close()
 
 
-def test_plotter():
+def test_plotter(tmp_path):
     image = mpimg.imread("data/test/map.jpg")
     # original image is black and white anyway
     binary_image = image[:, :, 0] > 150
@@ -539,7 +541,8 @@ def test_plotter():
     plt.imshow(image)
     plot_cells(cells, show=False)
 
-    plt.savefig("logs/images/image_decomposed.jpg")
+    plt.savefig(tmp_path / "image_decomposed.jpg")
+    plt.close()
 
 
 if __name__ == "__main__":

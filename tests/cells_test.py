@@ -1,4 +1,3 @@
-from numpy.core.fromnumeric import sort
 from cpp.cells import *
 from cpp.bsd import *
 import matplotlib.image as mpimg
@@ -40,7 +39,7 @@ def test_unique_cell():
 
 
 def test_simple_cell():
-    simple_cell = np.ones((10, 10), dtype=np.int)
+    simple_cell = np.ones((10, 10), dtype=int)
     simple_cell[:, :5] = 2
     cells = Cell.from_image(simple_cell)
 
@@ -104,7 +103,7 @@ def test_simple_cell():
 
 
 def test_simple_cell_2():
-    simple_cell = np.ones((10, 10), dtype=np.int)
+    simple_cell = np.ones((10, 10), dtype=int)
     simple_cell[:5, :] = 2
     cells = Cell.from_image(simple_cell)
 
@@ -161,7 +160,7 @@ def test_cell_boundaries():
 
 
 def test_plotting():
-    simple_cell = np.zeros((10, 10), dtype=np.int)
+    simple_cell = np.zeros((10, 10), dtype=int)
     simple_cell[:, :5] = 1
     print(simple_cell)
     cells = Cell.from_image(simple_cell)
@@ -177,13 +176,14 @@ def test_plotting_map():
     # plot_cells(cells)
 
 
-def test_plotting_h_map():
+def test_plotting_h_map(tmp_path):
     image = recurvise_H_map((400, 600), invert=True, num_recursions=0)
     decomposed = create_mask(image)
     cells = Cell.from_image(decomposed)
     plt.imshow(decomposed)
     plot_cells(cells)
-    plt.savefig("data/test/h_decomposed_0.png")
+    plt.savefig(tmp_path / "h_decomposed_0.png")
+    plt.close()
 
 
 def test_simple_plotting_map():

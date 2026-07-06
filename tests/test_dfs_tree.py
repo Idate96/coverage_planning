@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from numpy.lib.shape_base import expand_dims
 from cpp.dfs_tree import Graph, adj_matrix_to_dict
 from cpp.bsd import *
 import numpy as np

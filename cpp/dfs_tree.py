@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Tuple, List, Dict
 import numpy as np
 from collections import defaultdict, namedtuple
@@ -230,7 +229,7 @@ def adj_matrix_to_dict(adj_matrix: np.array) -> Dict[int, List[int]]:
     Returns:
         graph_dict (Dict[int, List[int]]): graph as adjacency list
     """
-    adj_matrix = adj_matrix.astype(np.bool)
+    adj_matrix = adj_matrix.astype(bool)
     graph_dict = defaultdict(list)
     n, _ = np.shape(adj_matrix)
 
